@@ -25,3 +25,21 @@ Status: OPEN · IN-REVIEW · FIXED-UNVERIFIED (changed in code/protocol, not yet
 | I-16 | Generated labels vs classification head: comparability with Bertsch/Pecher | MEDIUM | bridge claims | A3 | A6 | Bertsch §2 (head, constrained decoding) | state implications, add sensitivity analysis | OPEN | no |
 | I-17 | Contamination of public benchmarks (BANKING77/CLINC public since 2019–20) | MEDIUM | absolute scores, gaps | A2/A3 | A6 | `verification/02` §C | disclose; contamination-free probe if feasible | OPEN | no |
 | I-18 | Provider terms on publishing benchmark results / using outputs | MEDIUM | publication, API arm | A2 | A6 | not yet checked | read each provider's terms | OPEN | possibly |
+| I-19 | Estimand vs stratified pools: a random-pool estimand cannot be read from class-stratified N=200 pools | HIGH | N=200 contrasts | A3/A4 | A6 | `agents/06-redteam.md` F4; L-04 | stratified only at N=200 as a named condition, random-vs-stratified table (R=3) | FIXED-UNVERIFIED | no |
+| I-20 | Cross-draft contradictions between agent files (15 listed by A6) | HIGH | all numbers | integrator | A6 | `06-redteam.md` §1; `06b` C1, C5 | superseding rule (later rounds govern) plus assembled deliverables; API request count (C5) still unreconciled | IN-REVIEW | no |
+| I-21 | Confirmatory family excluded the crossover region (N=200) | HIGH | H1 | A4/integrator | A6 | `06-redteam.md` F1; L-03, L-15 | 6-contrast family incl. N=200 with pre-registered underpowered-a-priori rule | FIXED-UNVERIFIED | no |
+| I-22 | Labelling cost not in the cost model | MEDIUM | break-even | A4/A5 | A6 | `06-redteam.md` F-cost; `STATISTICAL_ANALYSIS_PLAN` cost section ("labelling axis") | labelling axis added to the break-even; no number yet | FIXED-UNVERIFIED | no |
+| I-23 | Tuning asymmetry and validation size at small N; tuning bar vs Spiegelhalter (27 configs x 5 folds) | HIGH | fine-tuning vs ICL gaps | A3 | independent reviewer | L-05, L-14; `06b` C7 | 4 trials per system (equal effort) plus pre-registered wider-grid sensitivity at N=200/1,000 (L-17); noisy selection at N=200 stated | IN-REVIEW | no |
+| I-24 | Power-simulation code and API request count not reproducible from the repository | HIGH | statistics and budget numbers | A4/A5 | independent reviewer | `06b` C5, C6 | copy simulations into `analysis/`; reconcile 259,104 vs 3 x 106,436 requests | OPEN | no |
+
+## Changes on 2026-11-22 (integrator; no status below is RESOLVED without an independent review)
+
+- I-10: CRITICAL -> HIGH per L-13, conditional on never claiming "first"; Spiegelhalter paper text still unread (H4), so the novelty claim stays provisional.
+- I-01, I-02: stay FIXED-UNVERIFIED; they are tested only by the gated pilot (G1-G7), which has not run.
+- I-04: stay OPEN until the replicate design is coded and R is frozen after the validation-split API runs (H1).
+- I-05, I-07: the plan now states the crossed mixed model and a 6-contrast Holm family (`STATISTICAL_ANALYSIS_PLAN.md`); IN-REVIEW, no code exists.
+- I-11: MEDIUM is acceptable per A6 because no LEDGAR adapter is released (L-08); keep HIGH until `DATASET_AUDIT.md` rights items are confirmed by an independent reader.
+- I-13: HIGH stays; ROUGE-L/BERTScore only unless the human validation study (H2) happens (L-10).
+- I-15: re-priced by A5 Round 2 (35.5-112 GPU-h needed vs about 54-70 available; API $93-140); stays HIGH because throughput is unmeasured.
+- I-09, I-18: stay OPEN (live API tests need H1; provider terms incorporated by reference not fully read).
+

@@ -1,6 +1,6 @@
 # Research foundation
 
-Status: assembled 2026-11-22 from `agents/01..06b`. Later rounds supersede earlier ones (A1 Round 2, A3 Round 2b, A4 Round 2, A5 Round 2, `DECISION_LOG.md` L-01..L-16 and later). **Nothing here is a result.** No confirmatory run exists; the pilot in `results/pilot-2026-11-21/` is exploratory (old prompt, fixed pool, under-trained at small N) and is never pooled with confirmatory data. Labels: **[V]** verified from a primary source or by computation, **[I]** interpretation, **[R]** recommendation, **[U]** unverified assumption; confidence H/M/L where given. Detailed evidence, URLs, quotes and access dates live in the agent files cited in brackets.
+Status: assembled 2026-11-22 from `agents/01..06` and `agents/06b` (06b is an integrator consistency check, not an independent review; see `NOVELTY_AND_RED_TEAM.md`). Later rounds supersede earlier ones (A1 Round 2, A3 Round 2b, A4 Round 2, A5 Round 2, `DECISION_LOG.md` L-01..L-16 and later). **Nothing here is a result.** No confirmatory run exists; the pilot in `results/pilot-2026-11-21/` is exploratory (old prompt, fixed pool, under-trained at small N) and is never pooled with confirmatory data. Labels: **[V]** verified from a primary source or by computation, **[I]** interpretation, **[R]** recommendation, **[U]** unverified assumption; confidence H/M/L where given. Detailed evidence, URLs, quotes and access dates live in the agent files cited in brackets.
 
 ## 1. Research question and positioning
 
