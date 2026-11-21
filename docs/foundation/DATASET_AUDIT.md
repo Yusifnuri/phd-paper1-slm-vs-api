@@ -43,7 +43,7 @@ Effects: evaluating API outputs is permitted; **never train adapters on API outp
 
 Treatment: near-duplicates are **kept** in the primary analysis and reported stratified by similarity bin (BillSum also 5-gram Jaccard); a novel-text sensitivity analysis excludes flagged items. Per-class results are descriptive only (~40 test items per BANKING77 class).
 
-Coverage [V, HF statistics]: with random pools, the share of test items whose class is absent from the pool is BANKING77 50.5% (N=50), 26.1% (100), 7.5% (200), 0.4% (500); LEDGAR 13.3% at N=200. Hence stratified pools at N=200 only, as a named condition (L-04), and no fine-tuning below N=77.
+Coverage [V, HF statistics]: with random pools, the share of test items whose class is absent from the pool is BANKING77 50.5% (N=50), 26.1% (100), 7.5% (200), 0.4% (500); LEDGAR 13.3% at N=200. Hence stratified pools at N=200 only, as a named condition (L-04), and no fine-tuning below N=200.
 
 ## 4. Contamination (I-17, MEDIUM)
 

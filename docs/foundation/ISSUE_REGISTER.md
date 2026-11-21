@@ -43,3 +43,16 @@ Status: OPEN · IN-REVIEW · FIXED-UNVERIFIED (changed in code/protocol, not yet
 - I-15: re-priced by A5 Round 2 (35.5-112 GPU-h needed vs about 54-70 available; API $93-140); stays HIGH because throughput is unmeasured.
 - I-09, I-18: stay OPEN (live API tests need H1; provider terms incorporated by reference not fully read).
 
+
+## Independent second pass (`agents/06c-independent-redteam.md`, 2026-11-22): new issues and actions
+
+| ID | Issue | Sev | Responsible | Action taken / status |
+|---|---|---|---|---|
+| I-25 | Pilot gates G1-G7 evaluated on the rows that select lr/checkpoint; G2/G3 tolerate -5 points | HIGH | A3 | Protocol section 8 rewritten: non-selection rows, G3 -2 points, pilot pass is no evidence for any hypothesis. FIXED-UNVERIFIED (pilot not run) |
+| I-26 | Weekly GPU cap (13.3 h) vs schedule (W5-W6 25-45 h), carry-over unknown, GC code dependency | HIGH | A5 | Cap-aware note added to FEASIBILITY section 4; H3 stays with the researcher. OPEN |
+| I-27 | kNN outside the inference family | HIGH | A4 | STAT plan: secondary contrasts and decision table. FIXED-UNVERIFIED |
+| I-28 | Novelty text overstated tuning-charged break-even; Trad and Chehab omitted | HIGH | A1 | RESEARCH_FOUNDATION and PAPER_OUTLINE corrected; Spiegelhalter text still unread (H4). IN-REVIEW |
+| I-29 | BillSum API request counts differ (A3 23,200/14,200 vs A5 28,400/22,400) | MEDIUM-HIGH | A3/A5 | Flagged in protocol and FEASIBILITY; `count_requests.py` to be written. OPEN |
+| I-23 (update) | Tuning bar L-14: L-17 was unbudgeted, no flip definition, no edge rule | HIGH | A3/A4/A5 | Replaced by L-19 (12-config sensitivity, 0.7-2.0 GPU-h, margin 3 points, edge rule). FIXED-UNVERIFIED |
+| C6/C7/C8/C10/C11/C13 | Two tags; a-priori underpowered rule; R extension B77 only; no BillSum equivalence; provider tie rule; sync fallback | HIGH | A3/A4 | Applied in protocol and STAT plan. FIXED-UNVERIFIED |
+Remaining OPEN, not fixable by text: FT arm unproven (I-01/I-02), power code outside the repo (I-24), unread Spiegelhalter paper (H4), no merged/tagged code (F9/F13).

@@ -1,6 +1,6 @@
 # Feasibility and budget
 
-Assembled from `agents/05-feasibility.md` (A5; **Round 2 supersedes** the three Round 1 scenarios), with request counts from A3 Round 2b. Labels: [V] verified from an official page on 2026-11-21 (pages read through fetch sub-agents, so page text is model-relayed), [M] measured, [I] interpretation, [U] unverified. All GPU numbers are fast-slow ranges from FLOP arithmetic (assumed 12-30% MFU), **not measurements**; throughput at 500 and 2,400 tokens is unmeasured (A5-11, HIGH).
+Assembled from `agents/05-feasibility.md` (A5; **Round 2 supersedes** the three Round 1 scenarios), with request counts from A5 Round 2 (A3 Round 2b gives different BillSum counts, 23,200/14,200 per selected/other provider vs A5's 28,400/22,400: unreconciled, I-29; one `count_requests.py` must settle it). Labels: [V] verified from an official page on 2026-11-21 (pages read through fetch sub-agents, so page text is model-relayed), [M] measured, [I] interpretation, [U] unverified. All GPU numbers are fast-slow ranges from FLOP arithmetic (assumed 12-30% MFU), **not measurements**; throughput at 500 and 2,400 tokens is unmeasured (A5-11, HIGH).
 
 ## 1. API prices and protocol facts (USD per 1M tokens, standard, text)
 | | Haiku 5.5 | GPT-6 Luna | Gemini 3.1 Flash-Lite |
@@ -56,7 +56,7 @@ GPU rate band **$3.6-6.0/h** (RunPod Community $3.59 to Together HGX $5.99; Digi
 | W5-W6 Dec 20-Jan 2 | analysis scripts; human faithfulness study (author time) | main runs, replicate-major (about 25-45 h at mid band) |
 | W7 Jan 3-9 | blinded variance re-estimation | finish runs; API confirmatory cells within 72 h per provider |
 | W8 Jan 10-16 | writing; reruns of failed cells | reserve 8-10 h |
-Red-team caveat (F9): engineering is at least four weeks [I], so writing has little slack; LEDGAR only if the gate passes and W7 ends early. Calendar dates assume the pilot gate is passed on schedule: the schedule is **not** a promise.
+**Cap-aware reading (06c C5):** 200 credits / 15 = 13.3 h per week, 106.7 h gross over eight weeks; W5-W6 hold at most 26.7 h, so the 25-45 h listed there does not fit unless unused credit carries over (H3, unknown). Base case: no carry-over; with it unknown, treat 54-70 productive hours as possibly 20-30% too high. The BillSum OOM probe needs the gradient-checkpointing code listed in W2: move that code to W1 or the probe to W2. Add a budget line of 0.7-2.0 GPU-h and under $1 API for the tuning-bar sensitivity (EXPERIMENT_PROTOCOL section 4, L-19). Red-team caveat (F9): engineering is at least four weeks [I], so writing has little slack; LEDGAR only if the gate passes and W7 ends early. Calendar dates assume the pilot gate is passed on schedule: the schedule is **not** a promise.
 
 ## 5. Reproducibility limits
 Haiku has no sampling control and Luna/Gemini may differ: pin ids, store `model_id_returned`, repeat 10%, report flip rate; run each provider's confirmatory cells inside 72 h. Open models: record `pip freeze`, adapter hashes, seeds, GPU and driver; GPU kernels are nondeterministic so replicate variance absorbs it. Three branches are unmerged and the pinned requirements never installed on the server: merge to one tagged commit first.
