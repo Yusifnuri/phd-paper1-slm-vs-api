@@ -1,0 +1,14 @@
+# Versions below were the latest on PyPI on 2026-11-21 (checked via the PyPI JSON API).
+# What is VERIFIED: that these versions exist and require Python >= 3.10/3.11 (server: 3.12).
+# What is NOT verified (no GPU/Linux access when written): that this exact set installs and
+# runs together, that the default torch wheel's CUDA build works with driver 580 / CUDA 13
+# (check `torch.version.cuda` in bootstrap output), and that bitsandbytes 0.50.2 ships a
+# working CUDA 13 binary. If one fails, change the pin and record the change in the pilot log.
+torch==2.15.0
+transformers==5.24.0
+peft==0.22.0
+bitsandbytes==0.50.2
+datasets==5.2.0
+accelerate==1.16.0
+huggingface_hub==2.4.0
+pytest==8.4.2
