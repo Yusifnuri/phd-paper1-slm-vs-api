@@ -1,0 +1,37 @@
+# Handoff (written 2026-11-21 ~18:30 Istanbul)
+
+For a fresh Claude session continuing this project. Read this, then `docs/PLAN.md` and `docs/research/2026-11-21-verified-findings.md`. The user (PhD student, Istanbul Aydın University) wants replies in **Turkish**, code/commits/paper text in **English**. Rules: never invent numbers, versions, prices or citations (say when unsure); no Claude co-author or attribution trailers in commits (the user's repos forbid them); never overwrite the MSc thesis repo `/Users/yusifnuri/slm-benchmark` (frozen at tag `msc-thesis` = commit `5497c5b`). Hugging Face and API keys are never pasted into chat or stored in the repo.
+
+## Where things are
+
+| Thing | Where |
+|---|---|
+| This repo (local only, no GitHub remote yet) | `/Users/yusifnuri/phd-paper1-slm-vs-api`, branch `main` (docs only) |
+| Step 2: evaluation + statistics | branch `claude/eval-harness-3f9302`, commit `ae0aabd`, worktree under `.claude/worktrees/` |
+| Step 4: API arm harness | branch `claude/api-harness-827c78`, commit `6743026` (fixes its schema test) |
+| Step 3: pilot training harness | branch `claude/pilot-train-226845`, commit `3a5c3a3` |
+| None of these is merged into `main` | merging needs the user's OK; a scratch merge of eval + api ran 106 tests green |
+
+## Server (university H200 portal)
+
+- 1 × NVIDIA H200 NVL, 143,771 MiB; Ubuntu 24.04 container, user `jovyan`, passwordless sudo, 32 cores, 96 GB RAM, disk wiped on every restart.
+- Credits: 200 per week, reset every Sunday; H200 = 15 credits/hour (≈13 h/week). The server bills while it runs: stop it in the portal when idle.
+- Reach it with `ssh jovyan@h200-madrid` (Tailscale, tailnet SSH rule set to `accept`, works non-interactively). Code lives in `~/paper1/pilot` (copied with `tar | ssh`, not git).
+- Installed there: torch 2.9.0+cu128, transformers 4.57.3, peft 0.18.0, trl 0.26.2, bitsandbytes 0.49.0, vllm 0.13.0, datasets 4.4.1. Missing: flash_attn, seqeval, codecarbon. `requirements/train.txt` on the pilot branch pins NEWER versions (torch 2.15, transformers 5.24) that were never installed: do not run `scripts/bootstrap_h200.sh` blindly, it would try to install them.
+- Hugging Face login on the server worked for user `yusifnuri` (needs redoing after every restart: `hf auth login`). Adapters must be pushed to the Hub after every run (`--hub-repo yusifnuri/<name>`, private).
+- The server's locale is not UTF-8: run Python with `PYTHONUTF8=1`. One pilot test (`test_no_test_split_reference_in_sources`) fails there for that reason only.
+
+## Pilot status
+
+- Smoke test (N=50, 10 steps): Phi-4-mini-instruct and Qwen3-4B-Instruct-2507 ran OK (train 1.8 s and 2.2 s, peak 14.0 and 17.0 GB). OLMo-3-7B-Instruct was still downloading; whether transformers 4.57.3 supports it was unverified.
+- Next: `cd ~/paper1/pilot && PYTHONUTF8=1 nohup python3 scripts/run_pilot.py --hub-repo yusifnuri/paper1-pilot-adapters > pilot.log 2>&1 &` (default: all registry models × techniques at N=1000, seed 42). Never run two grids at once: it corrupts the timing measurements. Read `runs/pilot.jsonl`, then recompute the GPU-hour estimate in `docs/PLAN.md`.
+
+## Open decisions (Step 0, user)
+
+NER dataset (Few-NERD, share-alike, or Broad Twitter Corpus, Twitter terms), financial dataset (SEntFiN or Twitter Financial News), replacement for code generation (Spider text-to-SQL, CC BY-SA, licence not yet verified), API arm (Claude Haiku 5.5, GPT-6 Luna, Gemini 3.1 Flash-Lite), two annotators for the 200-summary judge check, an empty GitHub repo `phd-paper1-slm-vs-api` (`gh` is not installed). Then write `docs/PREREGISTRATION.md` before any confirmatory result exists.
+
+## Things that went wrong, so they are not repeated
+
+- Never overwrite files in the user's `~/.ssh` without checking (an old key was overwritten on 2026-11-21).
+- Never disable SSH host-key checking; the safety classifier blocks it.
+- Verify a session's claims before reporting them (the integration test caught a real schema mismatch between eval and api).
