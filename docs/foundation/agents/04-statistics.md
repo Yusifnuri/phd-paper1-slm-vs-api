@@ -122,3 +122,76 @@ Findings from full text I downloaded and read (arXiv PDFs):
 - **I-06 (rsLoRA/TOST):** agree. The ±1 margin is unreachable (§2); the pilot rsLoRA gain (+4–6 points) is confounded with lr. Estimation only, lr-tuned per technique; ±3 only with a stated justification.
 - **I-07 (multiplicity):** resolved in design: one family of 4–6 tasks × {N=1000, N=5000} contrasts, Holm, everything else exploratory; wording to be copied into the pre-registration (A4-10).
 - **I-13 (summarisation validity):** keep HIGH, OPEN→IN-REVIEW with the metric set and human protocol above; ROUGE-only claims are not defensible; factual metrics are unvalidated for this text; human evaluation is recommended and is the one genuinely human-dependent decision (annotators, ≈$2–5k).
+
+---
+
+## Round 2 (2026-11-21): reconciled design, overlap simulation, minimal detectable gaps
+
+Supersedes §1–§3 wherever they disagree (N=5000 is gone; N=200 and 3000 enter). Coordinator decisions recorded, none contested except where flagged: (1) confirmatory family = {BANKING77, BillSum} × N ∈ {200, 1000, 3000}, best-validation FT vs best-validation ICL of the best API, **6 contrasts, Holm**; LEDGAR exploratory; N=77/100 exploratory (ICL/kNN only). (2) random pools primary for N≥1000, class-stratified only at N=200 (flagged), random-vs-stratified at N=200, R=3 as a table. (3) validation size min(1,000, N) at N≤200 primary, 1,000-label validation a sensitivity analysis; 4 trials per system. (4) R: BANKING77 8, BillSum 5, no confirmatory cell at R<5; blinded variance re-estimation after R=5, extension to 10; test sets 3,080 (B77) and 1,000 seeded (BillSum), same items for all arms. Code: `power_sim2.py`, `breakeven.py`, outputs `sim2_*.json` in the notes folder.
+
+### R2.1 Estimand (rewritten)
+- **N ≥ 1000 (random pools):** δ_N = E[acc_FT − acc_ICL] over random size-N pools **drawn without replacement from the fixed 9,003 training rows**, over training seeds, and over test items. It is *conditional on this training set*; the label says so.
+- **N = 200 (class-stratified pools):** δ_200 is conditional on the stratified draw (≥1 example per class, remainder random), stated as a separate condition. Pool-to-pool variance under stratification is smaller than under random pools (fewer absent classes), so the pessimistic regime below is conservative for it. [I]
+- **Generalising to a new training set** is a super-population claim; it is not made in the confirmatory family and is available only through the corrected interval in R2.3.
+
+### R2.2 Simulation set-up (assumptions pilot-free, all [U])
+`power_sim2.py` builds pool effects explicitly: M=9,003 row effects z_j; each replicate draws a size-N subset without replacement (overlap is hypergeometric: N=1000 → 11%, N=3000 → 33%, N=200 → 2%); the pool effect is √N × the subset mean of z, centred on the 9,003 rows for the conditional estimand ("cond") or uncentred for the super-population one ("super"); arms share row effects with correlation 0.5. Items fresh per simulation; latent probit as in §1.3. Assumed ICL accuracy 0.70 / 0.80 / 0.87 at N=200 / 1000 / 3000. Regimes: *opt* (latent between-arm correlation 0.85, within-arm 0.93, replicate SD of accuracy 1.5 / 1.0 / 0.7 points) and *pess* (0.65, 0.85, SD 3.0 / 2.0 / 1.4 points; roughly 1.5× discordance, 2× replicate SD). Test n=3,080. Holm: per-contrast first-step α = 0.05/6 = 0.0083 (conservative; later steps are less strict); α=0.025 shown for a 2-contrast reading. 500 simulations per power cell (±2 pts), 2,000 per type I cell (±0.5 pts).
+
+### R2.3 Does the crossed-model CI stay valid with overlapping pools? (b)
+Type I error at nominal 5% (n=1,500; A3 = crossed components, Satterthwaite):
+
+| Truth | N=200 | N=1000 | N=3000 |
+|---|---|---|---|
+| conditional on 9,003 rows, A3, R=5/8 | 5.2–7.1% | 5.2–6.5% | 5.2–5.7% |
+| super-population, A3 (uncorrected), R=5/8 | 6.0–8.1% | 8.0–10.6% | **10.7–18.7%** |
+| super-population, A3 with correction | 5.7–7.3% | 5.6–7.0% | 6.7–8.9% |
+| conditional, with the correction (cost) | 4.8–6.8% | 3.4–4.7% | 1.9–3.5% |
+
+**Verdict [V by simulation, under the stated model]:** for the *conditional* estimand the uncorrected crossed-model CI is valid at all three N, because pools drawn independently from a fixed finite set are independent given that set; overlap only shrinks pool variance by (1 − N/M). It is **not** valid for a super-population claim: the finite set's own deviation is shared by all replicates and never averages out with R. Correction [R], f = N/M: replace σ̂²_rep/R by σ̂²_rep·(1/R + f/(1−f)) in the variance of the mean difference (derivation: total pool variance V = v/(1−f), shared part V·f; code `a3(d, f)`); it lowers the error to 6–9% for super truth but is conservative (1.9–3.5% type I) for the conditional claim, so **primary = uncorrected with the conditional label; sensitivity = corrected, reported beside it**. The correction ignores the same finite-population effect of the 18,949-row BillSum training set (f ≤ 16%, smaller). The model assumes pool effects enter additively on the latent scale; real pool effects (class coverage, near-duplicates of test items) may be heavier-tailed [U].
+
+### R2.4 Minimal detectable gap, BANKING77 (points; 80% power, first-step α = 0.0083 / 0.025; super = corrected test under super truth, α = 0.0083)
+
+| N | R | opt cond | pess cond | opt α .025 | pess α .025 | opt super | pess super |
+|---|---|---|---|---|---|---|---|
+| 200 | 5 | 3.8 | 7.6 | 3.1 | 5.9 | 4.2 | 8.4 |
+| 200 | **8** | 2.7 | 5.0 | 2.4 | 4.1 | 2.9 | 5.4 |
+| 200 | 10 | 2.5 | 4.4 | 2.2 | 3.8 | 2.7 | 4.8 |
+| 1000 | 5 | 2.6 | 4.7 | 2.2 | 3.8 | 3.1 | 6.7 |
+| 1000 | **8** | 1.9 | 3.3 | 1.8 | 2.8 | 2.5 | 4.4 |
+| 1000 | 10 | 1.9 | 2.9 | 1.7 | 2.6 | 2.4 | 4.0 |
+| 3000 | 5 | 1.8 | 2.9 | 1.7 | 2.6 | 2.8 | 5.7 |
+| 3000 | **8** | 1.6 | 2.3 | 1.5 | 1.9 | 2.4 | 4.3 |
+| 3000 | 10 | 1.6 | 2.2 | 1.5 | 1.8 | 2.3 | 3.9 |
+
+Reading [I]: at the decided R=8, the conditional-estimand gap that is detectable is about 1.6–2.7 points (opt) or 2.3–5.0 (pess) across N. **N=200 is the weak cell**: its MDG is 2.7–5.0 points and any gap smaller than that returns "inconclusive". Extending to R=10 buys at most 0.3–0.6 points; n_test beyond 3,080 buys nothing (§1.3). A super-population claim needs 0.6–1.6 points more.
+
+### R2.5 BillSum, continuous ROUGE-L (n=1,000, R=5, α = 0.0083; 800 sims)
+Assumptions [U]: paired per-item SD split σ_item 0.04, residual 0.055, replicate SD of the paired mean difference σ_rep ∈ {0.2, 0.4, 0.8} ROUGE-L points (no data; first replicates will replace it). MDG at 80% power: **σ_rep 0.2 → 0.6 points; 0.4 → 1.0; 0.8 → 1.9**; at σ_rep 0.4: R=3 → ≈2.0 (not allowed anyway), R=8 → ≈0.8, n=500 → ≈1.2; N=200 / 3000 (σ_rep 0.4 / 0.8) ≈1.0 / 1.9. The replicate term dominates, so test size 1,000 is adequate and more bills do not help. **ROUGE-L gaps below ≈1 point are not interpretable anyway** (Goyal et al. treat ≈5-point gaps as informative, §4), so the confirmatory BillSum contrast detects "large enough to matter on ROUGE" only. Type I for continuous scores was not simulated separately (same estimator); check at R=5 once real σ_rep exists. [U]
+
+### R2.6 Pre-registered decision rule when the interval is wide (c)
+For each of the 6 contrasts report δ̂, the Holm-adjusted p, and the 95% crossed-model CI (and the Bonferroni-level 99.2% CI). Margin m: **3 points accuracy (B77), 1 point ROUGE-L (BillSum)**, fixed before the data and justified as "smaller than the gap at which the cost ranking could change" [R]. Outcomes: (i) **FT better / ICL better** iff Holm p<0.05; (ii) **practically equal (descriptive)** iff the 95% CI lies inside (−m, m); no equivalence p-value, outside the family; (iii) **inconclusive** otherwise, i.e. when p ≥ 0.05 and the CI extends beyond ±m. The words "no difference", "equivalent" and "ties" are not used for (iii); the paper reports the CI and the cell's MDG from R2.4/R2.5 (re-estimated from the real variance components after R=5). A contrast whose realised MDG exceeds the largest plausible effect is declared **underpowered a priori** before the test read.
+
+### R2.7 What the human study buys (d)
+Protocol replacing the 400-rating study: **60 bills × 3 systems = 180 summaries** (best FT, best API, and the reference-free kNN/zero-shot or the second FT/API arm; bills stratified by input-length tercile and by near-duplicate bin, seed fixed), blind and shuffled, claim-level faithfulness (supported / unsupported per summary sentence, LongEval-style) plus a 1–5 acceptability item. Rater 1 (the author) scores all 180, rater 2 (volunteer or small paid pilot) scores a random 90 for agreement; Krippendorff α (nominal for faithful/unfaithful, ordinal for the 5-point) with a bill-level bootstrap CI; adjudicate by discussion. Effort [assumption]: 8–13 min per summary ⇒ rater 1 ≈ 25–40 h, rater 2 ≈ 12–20 h (paid at LongEval's $15–20/h ⇒ $180–400, over A6's $300 ceiling at the upper end). Precision [own approximation; 180 summaries cluster in 60 bills, effective n 60–180]: a metric–human Spearman ρ=0.5 has a CI of about ±0.11–0.2; a paired faithfulness-rate difference between two systems (≈30% discordance, n=60) has a CI of ≈±14 points.
+- **With it:** AlignScore/SummaC/judge are *validated on this text* (report ρ and α; rule: a metric is reported as secondary evidence only if ρ ≥ 0.5 with lower bound ≥ 0.3; judge dropped if α < 0.6), and the paper may state that faithfulness differences of roughly ≥15 points were/were not seen on 60 bills, descriptively, plus "metric X tracks human faithfulness at ρ=…".
+- **Without it:** every BillSum statement is "on ROUGE-L/BERTScore (reference overlap), exploratory"; no claim on faithfulness, quality or "as good as"; no cost per successful summary (cost per 1,000 summaries beside ROUGE-L only). Near-duplicate-stratified and length-matched ROUGE (F10) are reported either way.
+- Neither version supports ranking systems on faithfulness with confidence.
+
+### R2.8 Labelling-cost axis and break-even sensitivity (e)
+**Labels.** Total cost of a deployment = N·c_L + C_train(N) + Q·c_q(N), c_L = cost per label ($, assumption band 0.10 / 0.50 / 2.00 for crowd / trained / expert, [U]). Because both arms use the same pool at the same N, **c_L cancels in FT-vs-API at fixed N** and enters only when arms need different N: Q* (FT at N₁ vs API at N₂) = [C_train(N₁) + (N₁ − N₂)·c_L] / (c_API − c_FT/u). Report a second axis "cost to reach a target accuracy a*": N_arm(a*) from each arm's curve × c_L + tuning/training + serving. Scale check [own arithmetic]: N=1000 labels cost $100–2,000 at that band, 25–1,000× the GPU training cost ($1.4–6.9), and roughly 0.7–13M API queries; the labelling term therefore dominates unless the pool already exists. For BillSum the pool is already labelled by CRS (state c_L = 0 sunk, and say the cost axis is then hypothetical).
+
+**Break-even sensitivity** (`breakeven.py`; B77, k=32 retrieval request $0.000126–0.000169 sync, ×0.5 batch, A5's N=1000 run times 0.08–0.23 h, 5 runs incl. 4 learning-rate trials ⇒ 0.4–1.15 h, inference 20–60 s per 1,000 items at saturation; rate band **$3.6–6.0/h, SXM/HGX prices**; **NVL caveat:** no NVL rental price was found and the card's board power is lower (600 W vs 700 W, [U]), so the band is a scenario, not a confidence interval). Q* = C_train/(c_API − c_FT/u), items:
+
+| Serving | u | best | central | worst |
+|---|---|---|---|---|
+| API sync | 1 | 9.7k | 40k | 265k |
+| API sync | 0.5 | 11k | 91k | never |
+| API sync | 0.2 | 21k | never | never |
+| API batch | 1 | 22k | 182k | never |
+| API batch | 0.5 | 32k | never | never |
+| API batch | 0.2 | never | never | never |
+
+Reading [I]: break-even exists only if the GPU is kept busy (u ≳ 0.5) and the API is called synchronously; with batch pricing (50% off) or a lightly used card the API is cheaper per item and Q* is "never". Fine-tuning's advantage then rests on accuracy, latency, privacy or per-correct cost, not marginal price. **Per-correct form** Q* = C_train/(a_FT·c_API/a_API − c_FT/u) shifts the figures by the accuracy ratio, and the CI must be a Fieller interval or report P(denominator ≤ 0); components resampled: replicates (C_train, a), items (token counts). Retries and unparseable rates enter c_q as (1+ρ). The 4 trials per system are charged to C_train and to the ICL arm's validation passes alike.
+
+### R2.9 Changed issues
+A4-01 stays HIGH: N=200 MDG 2.7–5.0 points at R=8. A4-02 stays: D_b still unobserved. A4-07 (grid spacing) is eased by N=3000 (×3 steps). New: **A4-11** (MEDIUM): confirmatory family includes N=200 with MDG up to 5 points; expect "inconclusive" there; consider moving it to the bracket-only statement (my evidence-based objection to decision 1; the coordinator decides). **A4-12** (MEDIUM): the conditional estimand must be stated in abstract and tables; super-population language needs the corrected CI. **A4-13** (LOW): continuous-score type I error unsimulated.
