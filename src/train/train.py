@@ -37,6 +37,22 @@ def peft_kwargs(technique: str, targets, r: int, alpha: int, dropout: float) -> 
     }
 
 
+def check_architecture(hf_id: str) -> None:
+    """Fail early and clearly if the installed transformers does not know the architecture."""
+    from transformers import AutoConfig
+    import transformers
+
+    try:
+        AutoConfig.from_pretrained(hf_id)
+    except (ValueError, KeyError) as e:
+        if "model_type" in str(e) or "architecture" in str(e):
+            raise RuntimeError(
+                f"transformers {transformers.__version__} does not support the architecture of "
+                f"{hf_id} ({str(e)[:150]}). Upgrade transformers (re-pin and re-test) or drop the model."
+            ) from e
+        raise
+
+
 def load_model(spec: ModelSpec, cfg: TrainConfig):
     import torch
     from transformers import AutoModelForCausalLM, BitsAndBytesConfig
@@ -113,6 +129,8 @@ def run(cfg: TrainConfig) -> Dict[str, Any]:
     spec = resolve(cfg.model)
     rid = run_id(spec.hf_id, cfg.technique, cfg.n, cfg.seed)
     print(f"[run] {rid}", flush=True)
+
+    check_architecture(spec.hf_id)
 
     # Data first (cheap, fails early); never touches the test split.
     texts, labels_all = data.load_train_split()

@@ -14,14 +14,18 @@ fi
 
 if [ ! -x "$VENV/bin/python" ]; then
   echo ">> creating venv at $VENV"
-  python3 -m venv "$VENV"
+  python3 -m venv --system-site-packages "$VENV"  # sees the server's preinstalled torch etc.
 fi
 # shellcheck disable=SC1091
 source "$VENV/bin/activate"
 
-echo ">> installing requirements/train.txt (no-op if already satisfied)"
-python -m pip install --quiet --upgrade pip
-python -m pip install --quiet -r "$REPO/requirements/train.txt"
+echo ">> checking requirements/train.txt against installed packages (never reinstalls)"
+MISSING="$(python "$REPO/scripts/check_env.py")" || { echo "Fix the pin or the server, then rerun."; exit 1; }
+if [ -n "$MISSING" ]; then
+  echo ">> installing only what is missing: $MISSING"
+  # shellcheck disable=SC2086
+  python -m pip install --quiet $MISSING
+fi
 
 echo; echo ">> GPU"
 nvidia-smi || echo "WARNING: nvidia-smi failed"
@@ -50,8 +54,7 @@ except Exception:
     raise SystemExit(1)
 PY
 then :; else
-  echo "NOT logged in. Run:   source $VENV/bin/activate && huggingface-cli login"
-  echo "(newer huggingface_hub: 'hf auth login'; or export HF_TOKEN=...)"
+  echo "NOT logged in. Run:   source $VENV/bin/activate && hf auth login   (or export HF_TOKEN)"
 fi
 
 echo; echo ">> done. Next:"
