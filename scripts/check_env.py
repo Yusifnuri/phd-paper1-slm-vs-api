@@ -8,7 +8,10 @@ from pathlib import Path
 
 req = Path(__file__).resolve().parent.parent / "requirements" / "train.txt"
 bad, missing = [], []
+verify_only = False
 for line in req.read_text().splitlines():
+    if line.startswith("# --- installed on the server"):
+        verify_only = True
     line = line.split("#")[0].strip()
     if not line:
         continue
@@ -23,7 +26,8 @@ for line in req.read_text().splitlines():
     try:
         have = md.version(name).split("+")[0]
     except md.PackageNotFoundError:
-        missing.append(line)
+        if not verify_only:
+            missing.append(line)
         continue
     if have != pin:
         bad.append(f"{name}: installed {have}, pinned {pin}")

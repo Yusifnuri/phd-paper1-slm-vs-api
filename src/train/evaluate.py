@@ -1,5 +1,6 @@
 """Validation-set generation, parsing, accuracy, and prediction records.
 
+Parsing is the shared task_spec.parse_label (case-insensitive, same as the API arm).
 Records follow src/eval/schema.py (branch claude/eval-harness-3f9302, commit ae0aabd)
 field for field. That module is not merged here, so records are built as plain dicts and
 tests validate them against it when it is importable. Differences: none known.
@@ -12,8 +13,9 @@ import re
 import time
 from typing import Any, Callable, Dict, List, Optional, Sequence, Set
 
-from .config import TASK
+from . import task_spec
 from .data import item_id, left_pad, prompt_ids
+from .task_spec import TASK
 
 SCHEMA_FIELDS = (
     "run_id", "system", "arm", "technique", "task", "n_budget", "seed", "item_id",
@@ -22,26 +24,17 @@ SCHEMA_FIELDS = (
 )
 
 
-def normalise(text: str) -> str:
-    """First non-empty line, lower-cased, spaces and hyphens to underscores, quotes stripped."""
-    for line in text.strip().splitlines():
-        line = line.strip()
-        if line:
-            line = line.strip("`'\".,;: ")
-            return re.sub(r"[\s\-]+", "_", line.lower())
-    return ""
-
-
-def parse_label(text: str, labels: Set[str]) -> Optional[str]:
-    cand = normalise(text)
-    return cand if cand in labels else None
+def parse_label(text: str, labels=None) -> Optional[str]:
+    """Shared parser (task_spec.parse_label): canonical label or None. `labels` is ignored
+    unless given as a custom lookup dict; kept for call compatibility."""
+    return task_spec.parse_label(text, labels if isinstance(labels, dict) else None)
 
 
 def make_record(
     *, run_id: str, system: str, technique: str, n: int, seed: int, train_index: int,
-    prediction: str, gold: str, labels: Set[str], input_tokens: int, output_tokens: int,
+    prediction: str, gold: str, input_tokens: int, output_tokens: int,
 ) -> Dict[str, Any]:
-    parsed = parse_label(prediction, labels)
+    parsed = task_spec.parse_label(prediction)
     return {
         "run_id": run_id, "system": system, "arm": "finetuned", "technique": technique,
         "task": TASK, "n_budget": n, "seed": seed, "item_id": item_id(train_index),
@@ -105,7 +98,7 @@ def generate_predictions(
 
 def evaluate(
     model: Any, tokenizer: Any, *, run_id: str, system: str, technique: str, n: int,
-    seed: int, items: Sequence[tuple], labels: Set[str], stop_ids: Sequence[int],
+    seed: int, items: Sequence[tuple], stop_ids: Sequence[int],
     pad_id: int, batch_size: int, max_new_tokens: int,
 ) -> Dict[str, Any]:
     """items: (train_index, query, gold). Returns records, accuracy and timing."""
@@ -116,7 +109,7 @@ def evaluate(
     records = [
         make_record(
             run_id=run_id, system=system, technique=technique, n=n, seed=seed, train_index=ti,
-            prediction=g["text"], gold=gold, labels=labels,
+            prediction=g["text"], gold=gold,
             input_tokens=g["input_tokens"], output_tokens=g["output_tokens"],
         )
         for (ti, _, gold), g in zip(items, gens)

@@ -1,15 +1,22 @@
-"""BANKING77 data: fixed validation carve-out, nested training pools, prompt building.
+"""BANKING77 data: fixed validation carve-out, nested per-replicate training pools, prompts.
 
-The pilot never reads the test split: `load_train_split` loads only "train", and nothing
-in this package references a test split.
+The pilot never reads the test split: `load_train_split` loads only "train".
 
 Splits are index lists into the original train split (10,003 rows):
-    perm      = seeded shuffle of all train indices
-    val       = perm[:1000]                 fixed validation set
-    remainder = perm[1000:]                 9,003 rows
-    pool(N)   = remainder[:N]               so pool(50) < pool(200) < pool(1000) < pool(5000)
-Pools are plain random draws, not class-stratified: at N=50 most of the 77 intents have
-no example. That is the label-budget question itself, not a bug.
+    val       = shuffle(all, VAL_SEED)[:1000]     FIXED for every replicate (model selection only)
+    remainder = the other 9,003 rows
+    order     = shuffle(remainder, pool_seed)     (or class-interleaved, see below)
+    pool(N)   = order[:N]                          so pool(50) < pool(200) < pool(1000) < pool(5000)
+A replicate is (pool_seed, seed): each pool_seed gives a fresh nested pool, shared by every
+method (and by the API arm) of that replicate; seed only changes training randomness.
+
+sampling="random" (default): plain random order, so at N=50 most of the 77 intents have no
+example. sampling="stratified": classes are interleaved round-robin, so every prefix pool(N)
+has floor(N/77) or ceil(N/77) examples per class (and is still nested). Which one the paper
+uses is still pending, hence the flag.
+
+The test split is frozen: its size and fingerprint (sha256 of texts+labels in original order)
+are recorded once by scripts/freeze_test_split.py, which is the only code that reads it.
 """
 
 from __future__ import annotations
@@ -18,25 +25,26 @@ import hashlib
 import json
 import random
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
+
+from . import task_spec
+from .task_spec import BANKING77_LABELS, TASK, build_messages  # noqa: F401
 
 DATASET_ID = "PolyAI/banking77"
-TASK = "banking77"
-DATA_SEED = 42
+DATA_SEED = 42  # default pool seed
+VAL_SEED = 42
 VAL_SIZE = 1000
 POOL_SIZES = (50, 200, 1000, 5000)
-
-INSTRUCTION = (
-    "Classify the customer's banking query into one intent label. "
-    "Answer with the label name only."
-)
+N_TRAIN, N_TEST = 10003, 3080
 
 
 @dataclass(frozen=True)
 class Splits:
-    seed: int
+    pool_seed: int
+    val_seed: int
+    sampling: str
     val: Tuple[int, ...]
-    remainder: Tuple[int, ...]  # permuted order; pools are prefixes of it
+    remainder: Tuple[int, ...]  # pool order; pools are prefixes of it
 
     def pool(self, n: int) -> List[int]:
         if not 1 <= n <= len(self.remainder):
@@ -44,17 +52,49 @@ class Splits:
         return list(self.remainder[:n])
 
 
-def make_splits(n_train: int, seed: int = DATA_SEED, val_size: int = VAL_SIZE) -> Splits:
+def _interleave_by_class(order: Sequence[int], labels: Sequence[str], seed: int) -> List[int]:
+    by_class: Dict[str, List[int]] = {}
+    for i in order:
+        by_class.setdefault(labels[i], []).append(i)
+    classes = sorted(by_class)
+    random.Random(seed + 1).shuffle(classes)  # which classes come first at small N
+    out: List[int] = []
+    depth = max(len(v) for v in by_class.values())
+    for d in range(depth):
+        out += [by_class[c][d] for c in classes if d < len(by_class[c])]
+    return out
+
+
+def make_splits(
+    n_train: int, pool_seed: int = DATA_SEED, val_size: int = VAL_SIZE, val_seed: int = VAL_SEED,
+    sampling: str = "random", labels: Optional[Sequence[str]] = None,
+) -> Splits:
     if val_size >= n_train:
         raise ValueError("val_size must be smaller than the training set")
     perm = list(range(n_train))
-    random.Random(seed).shuffle(perm)  # random.Random(int) is stable across Python 3.x
-    return Splits(seed=seed, val=tuple(perm[:val_size]), remainder=tuple(perm[val_size:]))
+    random.Random(val_seed).shuffle(perm)  # random.Random(int) is stable across Python 3.x
+    val, rest = perm[:val_size], sorted(perm[val_size:])
+    random.Random(pool_seed).shuffle(rest)
+    if sampling == "stratified":
+        if labels is None or len(labels) != n_train:
+            raise ValueError("stratified sampling needs the label of every training row")
+        rest = _interleave_by_class(rest, labels, pool_seed)
+    elif sampling != "random":
+        raise ValueError(f"unknown sampling {sampling!r}")
+    return Splits(pool_seed, val_seed, sampling, tuple(val), tuple(rest))
 
 
 def indices_hash(indices: Sequence[int]) -> str:
     """sha256 of the ordered index list; recorded per pool so runs can be matched later."""
     return hashlib.sha256(",".join(map(str, indices)).encode()).hexdigest()
+
+
+def rows_fingerprint(texts: Sequence[str], labels: Sequence[str]) -> str:
+    """sha256 over (text, label) rows in order; used to freeze and verify the test split."""
+    h = hashlib.sha256()
+    for t, l in zip(texts, labels):
+        h.update(json.dumps([t, l], ensure_ascii=False).encode() + b"\n")
+    return h.hexdigest()
 
 
 def load_train_split() -> Tuple[List[str], List[str]]:
@@ -63,6 +103,8 @@ def load_train_split() -> Tuple[List[str], List[str]]:
 
     ds = load_dataset(DATASET_ID, split="train")
     names = ds.features["label"].names
+    if list(names) != BANKING77_LABELS:
+        raise RuntimeError("dataset label names differ from task_spec.BANKING77_LABELS")
     return list(ds["text"]), [names[i] for i in ds["label"]]
 
 
@@ -71,10 +113,6 @@ def item_id(train_index: int) -> str:
 
 
 # ---------------------------------------------------------------- prompts and tokens
-
-def build_messages(query: str) -> List[Dict[str, str]]:
-    return [{"role": "user", "content": f"{INSTRUCTION}\n\nQuery: {query}"}]
-
 
 def render_pair(tokenizer: Any, query: str, label: str) -> Tuple[str, str]:
     """(prompt_text, completion_text) using the tokenizer's chat template.
@@ -142,7 +180,7 @@ def left_pad(seqs: Sequence[Sequence[int]], pad_id: int) -> Tuple[List[List[int]
 def split_summary(splits: Splits, n: int) -> Dict[str, Any]:
     pool = splits.pool(n)
     return {
-        "data_seed": splits.seed,
+        "pool_seed": splits.pool_seed, "val_seed": splits.val_seed, "sampling": splits.sampling,
         "val_size": len(splits.val),
         "val_hash": indices_hash(splits.val),
         "pool_n": n,

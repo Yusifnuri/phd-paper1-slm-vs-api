@@ -24,14 +24,17 @@ sys.path.insert(0, str(ROOT))
 from src.train.config import TECHNIQUES, run_id  # noqa: E402
 from src.train.registry import MODELS, resolve  # noqa: E402
 
-Key = Tuple[str, str, int, int]
+Key = Tuple[str, str, int, int, int, str]  # model, technique, N, seed, pool_seed, sampling
 
 
-def plan(models: List[str], techniques: List[str], ns: List[int], seed: int) -> List[Key]:
+def plan(models: List[str], techniques: List[str], ns: List[int], seeds: List[int],
+         pool_seeds: List[int] = (42,), sampling: str = "random") -> List[Key]:
+    """Every replicate (pool_seed x seed) is run for every method, so methods share pools."""
     out: List[Key] = []
     for m in models:
         hf = resolve(m).hf_id
-        out += [(hf, t, n, seed) for t in techniques for n in ns]
+        out += [(hf, t, n, sd, ps, sampling)
+                for ps in pool_seeds for sd in seeds for t in techniques for n in ns]
     return out
 
 
@@ -49,7 +52,7 @@ def read_results(path: Path) -> List[Dict[str, Any]]:
 
 
 def key_of(r: Dict[str, Any]) -> Key:
-    return (r["model"], r["technique"], r["n"], r["seed"])
+    return (r["model"], r["technique"], r["n"], r["seed"], r.get("pool_seed", 42), r.get("sampling", "random"))
 
 
 def done_keys(rows: List[Dict[str, Any]]) -> set:
@@ -57,10 +60,12 @@ def done_keys(rows: List[Dict[str, Any]]) -> set:
 
 
 def build_command(key: Key, a: argparse.Namespace, results: Path) -> List[str]:
-    model, tech, n, seed = key
+    model, tech, n, seed, pool_seed, sampling = key
     cmd = [sys.executable, "-m", "src.train.train", "--model", model, "--technique", tech,
-           "--n", str(n), "--seed", str(seed), "--epochs", str(a.epochs),
-           "--results", str(results), "--micro-batch", str(a.micro_batch)]
+           "--n", str(n), "--seed", str(seed), "--pool-seed", str(pool_seed),
+           "--sampling", sampling, "--epochs", str(a.epochs), "--results", str(results)]
+    if a.tune and not a.smoke:
+        cmd.append("--tune")
     if a.hub_repo and not a.smoke:
         cmd += ["--hub-repo", a.hub_repo]
     if a.smoke:
@@ -70,9 +75,9 @@ def build_command(key: Key, a: argparse.Namespace, results: Path) -> List[str]:
 
 
 def record_failure(results: Path, key: Key, returncode: int, tail: str) -> None:
-    model, tech, n, seed = key
-    row = {"status": "failed", "run_id": run_id(model, tech, n, seed), "model": model,
-           "technique": tech, "n": n, "seed": seed, "returncode": returncode, "error_tail": tail}
+    model, tech, n, seed, pool_seed, sampling = key
+    row = {"status": "failed", "run_id": run_id(model, tech, n, seed, pool_seed, sampling), "model": model,
+           "technique": tech, "n": n, "seed": seed, "pool_seed": pool_seed, "sampling": sampling, "returncode": returncode, "error_tail": tail}
     results.parent.mkdir(parents=True, exist_ok=True)
     with open(results, "a", encoding="utf-8") as fh:
         fh.write(json.dumps(row) + "\n")
@@ -87,7 +92,7 @@ def latest_by_key(rows: List[Dict[str, Any]]) -> Dict[Key, Dict[str, Any]]:
 
 def summary_table(rows: List[Dict[str, Any]]) -> str:
     latest = latest_by_key(rows)
-    lora_t = {(k[0], k[2], k[3]): r["train_seconds"] for k, r in latest.items()
+    lora_t = {(k[0], k[2], k[3], k[4]): r["train_seconds"] for k, r in latest.items()
               if k[1] == "lora" and r.get("status") == "ok"}
     head = ["model", "technique", "N", "status", "train s", "load s", "peak GB", "tok/s", "acc", "vs lora", "hub"]
     lines = [head]
@@ -96,7 +101,7 @@ def summary_table(rows: List[Dict[str, Any]]) -> str:
         if r.get("status") != "ok":
             lines.append([k[0].split("/")[-1], k[1], str(k[2]), "FAILED"] + ["-"] * 7)
             continue
-        base = lora_t.get((k[0], k[2], k[3]))
+        base = lora_t.get((k[0], k[2], k[3], k[4]))
         rel = f"{r['train_seconds'] / base:.2f}x" if base and k[1] != "lora" else "-"
         hub = "yes" if r.get("hub_pushed") else ("no" if r.get("hub_repo") else "n/a")
         lines.append([k[0].split("/")[-1], k[1], str(k[2]), "ok", f"{r['train_seconds']:.0f}",
@@ -111,9 +116,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     p.add_argument("--models", nargs="+", default=list(MODELS), help="registry keys or HF ids")
     p.add_argument("--techniques", nargs="+", choices=TECHNIQUES, default=None)
     p.add_argument("--ns", nargs="+", type=int, default=None, help="default: 1000 (smoke: 50)")
-    p.add_argument("--seed", type=int, default=42)
+    p.add_argument("--seeds", nargs="+", type=int, default=[42], help="training seeds")
+    p.add_argument("--pool-seeds", nargs="+", type=int, default=[42], help="pool seeds (replicates)")
+    p.add_argument("--sampling", choices=("random", "stratified"), default="random")
+    p.add_argument("--tune", action="store_true", help="choose lr and epochs by validation loss per run")
     p.add_argument("--epochs", type=int, default=3)
-    p.add_argument("--micro-batch", type=int, default=16)
     p.add_argument("--hub-repo", default=None, help="private Hub repo 'user/name' for adapters")
     p.add_argument("--results", default=None, help="default runs/pilot.jsonl (smoke: runs/smoke.jsonl)")
     p.add_argument("--smoke", action="store_true", help="N=50, 10 steps, 64 eval items, no Hub push")
@@ -124,7 +131,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     techniques = a.techniques or (["lora"] if a.smoke else list(TECHNIQUES))
     ns = a.ns or ([50] if a.smoke else [1000])
     results = ROOT / (a.results or ("runs/smoke.jsonl" if a.smoke else "runs/pilot.jsonl"))
-    keys = plan(a.models, techniques, ns, a.seed)
+    keys = plan(a.models, techniques, ns, a.seeds, a.pool_seeds, a.sampling)
     done = set() if a.force else done_keys(read_results(results))
 
     todo = [k for k in keys if k not in done]
