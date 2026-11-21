@@ -1,0 +1,21 @@
+# Environments and secrets
+venv/
+.venv/
+.env
+__pycache__/
+*.pyc
+
+# Large or regenerable artefacts: adapters go to the Hugging Face Hub, not git
+adapters/
+checkpoints/
+data/raw/
+data/cache/
+mlruns/
+mlflow.db
+wandb/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+anaconda_projects/
