@@ -6,7 +6,7 @@ For a fresh Claude session continuing this project. Read this, then `docs/PLAN.m
 
 | Thing | Where |
 |---|---|
-| This repo (local only, no GitHub remote yet) | `/Users/yusifnuri/phd-paper1-slm-vs-api`, branch `main` (docs only) |
+| This repo (GitHub: `Yusifnuri/phd-paper1-slm-vs-api`, `origin`; `main` and the three branches below pushed 2026-11-21; pilot results in `results/pilot-2026-11-21/`; pilot-train branch is now at `426d98e`) | `/Users/yusifnuri/phd-paper1-slm-vs-api`, branch `main` (docs only) |
 | Step 2: evaluation + statistics | branch `claude/eval-harness-3f9302`, commit `ae0aabd`, worktree under `.claude/worktrees/` |
 | Step 4: API arm harness | branch `claude/api-harness-827c78`, commit `6743026` (fixes its schema test) |
 | Step 3: pilot training harness | branch `claude/pilot-train-226845`, commit `3a5c3a3` |
