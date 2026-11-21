@@ -152,6 +152,8 @@ def run_config(
         raise ValueError("icl_random needs a seed")
     if technique != "icl_random":
         seed = None
+    if technique == "zero_shot":
+        n_budget = 0  # shared schema: zero-shot uses no pool
     if len(pool) < n_budget and technique != "zero_shot":
         raise ValueError(f"pool has {len(pool)} examples but n_budget is {n_budget}")
     spec = client.spec
@@ -273,7 +275,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     ap.add_argument("--task", required=True)
     ap.add_argument("--template", required=True)
     ap.add_argument("--technique", required=True, choices=TECHNIQUES)
-    ap.add_argument("--n-budget", type=int, required=True)
+    ap.add_argument("--n-budget", type=int, required=True, help="pool size N (ignored and logged as 0 for zero_shot)")
     ap.add_argument("--k", type=int, default=32)
     ap.add_argument("--seed", type=int, default=None, help="required for icl_random")
     ap.add_argument("--pool", required=True)

@@ -159,7 +159,9 @@ def _norm_label(s: str) -> str:
 
 def parse_label(text: str, context: dict[str, Any]) -> tuple[Any, bool]:
     """First non-empty line, normalised, must match one label exactly (case- and
-    separator-insensitive). No fuzzy matching: a near miss is a format failure."""
+    separator-insensitive). No fuzzy matching: a near miss is a format failure.
+    On failure `parsed` is None (shared schema: parse_ok == (parsed is not None));
+    the raw text is kept in the record's `prediction` field."""
     labels = context.get("labels") or []
     lookup = {_norm_label(lab): lab for lab in labels}
     lines = [ln for ln in text.strip().splitlines() if ln.strip()]
@@ -170,12 +172,12 @@ def parse_label(text: str, context: dict[str, Any]) -> tuple[Any, bool]:
     key = _norm_label(first)
     if key in lookup:
         return lookup[key], True
-    return first, False
+    return None, False
 
 
 def parse_free_text(text: str, context: dict[str, Any]) -> tuple[Any, bool]:
     cleaned = re.sub(r"^\s*(output|summary)\s*:\s*", "", text.strip(), flags=re.IGNORECASE).strip()
-    return cleaned, bool(cleaned)
+    return (cleaned, True) if cleaned else (None, False)
 
 
 # ---------------------------------------------------------------------------

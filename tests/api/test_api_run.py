@@ -159,12 +159,57 @@ def test_schema_rejects_bad_records(specs, toy_pool, toy_test, cls_context, tmp_
             validate_record(bad)
 
 
-def test_records_match_eval_schema_when_available(specs, toy_pool, toy_test, cls_context, tmp_path):
-    schema = pytest.importorskip("src.eval.schema", reason="src/eval/schema.py not merged into this branch yet")
-    out = tmp_path / "run.jsonl"
-    _run(FakeClient(specs["anthropic"]), out, toy_pool, toy_test[:2], cls_context)
-    validator = next((getattr(schema, n) for n in ("validate_record", "validate") if hasattr(schema, n)), None)
-    if validator is None:
-        pytest.skip("src.eval.schema exposes no validate_record/validate function")
+def test_zero_shot_records_have_n_budget_zero(specs, toy_pool, toy_test, cls_context, tmp_path):
+    out = tmp_path / "zs.jsonl"
+    s = _run(FakeClient(specs["anthropic"]), out, toy_pool, toy_test, cls_context, technique="zero_shot")
+    recs = read_records(out)
+    assert all(r["n_budget"] == 0 and r["extra"]["retrieved_ids"] == [] for r in recs)
+    assert "__n0__" in s["run_id"]
+
+
+def test_parse_failure_has_null_parsed(specs, toy_pool, toy_test, cls_context, tmp_path):
+    out = tmp_path / "bad.jsonl"
+    _run(FakeClient(specs["anthropic"], answer="no idea"), out, toy_pool, toy_test[:2], cls_context)
     for r in read_records(out):
-        validator(r)
+        assert r["parse_ok"] is False and r["parsed"] is None and r["prediction"] == "no idea"
+
+
+def _eval_schema():
+    return pytest.importorskip("src.eval.schema", reason="src/eval/schema.py not merged into this branch yet")
+
+
+def _written_runs(specs, toy_pool, toy_test, cls_context, tmp_path):
+    """Files written by run_config for each technique, sync and batch, plus a parse failure."""
+    paths = []
+    for name, kw in [
+        ("retrieved", dict(technique="icl_retrieved")),
+        ("random", dict(technique="icl_random", seed=3, mode="batch")),
+        ("zero_shot", dict(technique="zero_shot")),
+        ("unparsed", dict(technique="icl_retrieved", client=FakeClient(specs["openai"], answer="??"))),
+    ]:
+        out = tmp_path / f"{name}.jsonl"
+        args = dict(kw)
+        client = args.pop("client", FakeClient(specs["anthropic"]))
+        _run(client, out, toy_pool, toy_test, cls_context, **args)
+        paths.append(out)
+    return paths
+
+
+def test_records_match_eval_schema_when_available(specs, toy_pool, toy_test, cls_context, tmp_path):
+    schema = _eval_schema()
+    for path in _written_runs(specs, toy_pool, toy_test, cls_context, tmp_path):
+        for d in read_records(path):
+            rec = schema.PredictionRecord.from_dict(d)  # validates in __post_init__
+            schema.validate_record(rec)
+
+
+def test_run_output_loads_through_eval_schema(specs, toy_pool, toy_test, cls_context, tmp_path):
+    schema = _eval_schema()
+    paths = _written_runs(specs, toy_pool, toy_test, cls_context, tmp_path)
+    for path in paths:
+        recs = schema.load_predictions(path)
+        assert len(recs) == len(toy_test)
+        schema.check_run_consistency(recs)
+    every = schema.load_predictions(paths)  # several runs together
+    schema.check_run_consistency(every)
+    assert len({r.run_id for r in every}) == len(paths)

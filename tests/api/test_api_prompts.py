@@ -66,7 +66,7 @@ def test_register_new_task_template():
     ("  Card Arrival.\n", "card_arrival", True),
     ("Label: exchange_rate", "exchange_rate", True),
     ("`terminate_account`", "terminate_account", True),
-    ("card arrived late", "card arrived late", False),
+    ("card arrived late", None, False),  # parse failure: parsed is None
     ("", None, False),
 ])
 def test_label_parsing(text, expected, ok, cls_context):

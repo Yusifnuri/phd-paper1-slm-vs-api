@@ -34,8 +34,8 @@ RECORD_SCHEMA: dict[str, Any] = {
         "arm": {"const": "api"},
         "technique": {"enum": list(TECHNIQUES)},
         "task": {"type": "string", "minLength": 1},
-        # Zero-shot does not depend on the pool, but is still logged under the N of its grid cell.
-        "n_budget": {"type": "integer", "minimum": 1},
+        # Shared schema: zero_shot uses no pool, so its n_budget is 0.
+        "n_budget": {"type": "integer", "minimum": 0},
         "seed": {"type": ["integer", "null"]},
         "item_id": {"type": "string", "minLength": 1},
         "prediction": {"type": "string"},
@@ -61,6 +61,10 @@ def validate_record(record: dict[str, Any]) -> None:
         raise jsonschema.ValidationError("icl_random records need a seed")
     if record["technique"] != "icl_random" and record["seed"] is not None:
         raise jsonschema.ValidationError("seed must be null unless technique is icl_random")
+    if (record["technique"] == "zero_shot") != (record["n_budget"] == 0):
+        raise jsonschema.ValidationError("n_budget must be 0 exactly when technique is zero_shot")
+    if record["parse_ok"] != (record["parsed"] is not None):
+        raise jsonschema.ValidationError("parse_ok must equal (parsed is not None)")
 
 
 def read_records(path: str | Path) -> list[dict[str, Any]]:
