@@ -130,3 +130,48 @@ FT finals are 78 / 126 trainings and ≈216 tuning trials; every final is follow
 - **I-16:** decided in §7: generation primary, strict + valid-only + constrained + one head bridge. IN-REVIEW.
 
 Alternatives for each decision are listed inline (D1–D8) for the decision log.
+
+
+## Round 2: reconciled grid (2026-11-21)
+
+Sources: 04, 05, 02, 01. Costs are my arithmetic from A5's per-request prices; A5 to re-price.
+
+### 1. Test sizes
+Power depends on n only up to ≈3,000 items (A4). At N=1,000 and a 3-point gap, R=5, first-step α 0.025/0.0083: n=1,000 gives .75/.60, n=3,080 gives .96/.89. So **BANKING77: all 3,080 items for every arm** (API cost is small: ≈1.0–1.2k tokens per request). **LEDGAR: one seeded subset of 3,000 of 10,000** for every arm in every contrast. **BillSum (US test 3,269): one seeded subset of 1,000** for every arm. The metric is continuous: with an assumed paired ROUGE-L SD of 0.06 [U] the item SE is 0.19 points at n=1,000, the replicate SE is 0.4/√5=0.18, so at R=5 the minimal detectable gap is ≈4.6×√(0.19²+0.18²) ≈ 1.2 points (n=500: 1.5; n=3,269: 1.0).
+**Free arms** (kNN, SLM, fine-tuned) are also scored on the full test as a descriptive extra; every paired contrast and cost-per-correct figure uses the identical seeded items (seed and hash fixed in the pre-registration).
+**Near duplicates (A2):** BillSum 297/3,269 (9.1%) at cosine ≥0.95, 16.9% at ≥0.9; LEDGAR 338 exact (3.4%), 29.2% at ≥0.9; BANKING77 11 exact, 13.5% at ≥0.9. These are against the *whole* train set; against a pool of N they are fewer. They stay in the primary analysis (paraphrase is part of deployment). The novel-text stratum is a sensitivity analysis with effective n ≈ 2,660 (B77), 2,120 (LEDGAR), 830–910 (BillSum): negligible power loss for B77, BillSum MDD ≈1.3 points.
+
+### 2. Replicates
+Order runs replicate-major (all methods of replicate 1, then 2, …) so blinded variance re-estimation (A4) is possible: after R=5, estimate variance components only; if power for δ=3 points is <80%, extend to R=8 (B77) or 10 (cap). **B77: R=5 (minimum viable), 8 (recommended). BillSum: N=1,000 R=5 in both grids; N=5,000 R=3 (minimum viable; exploratory, not in the confirmatory family, because at R=3 the t₂ critical value ≈10 gives MDD ≈2.3 ROUGE points) and R=5 in the recommended grid if the §11 throughput benchmark gives ≤2 h per run; N=200 R=3. LEDGAR (extension): R=5.** Confirmatory family therefore: B77 N=1,000 and 5,000, BillSum N=1,000, plus LEDGAR N=1,000 and 5,000 if included: 3 or 5 Holm hypotheses.
+**N=5,000 overlap (A3-07):** two pools of 5,000 from 9,003 rows share 5,000²/9,003 ≈ 2,780 items (55%); the pool-effect variance is a finite-population variance, ≈(1−5,000/9,003)=0.44 of the infinite-population value (SD ×0.67). Decision: keep independent permutations, state that the N=5,000 estimand is conditional on these 9,003 training rows, and label the CI accordingly; the crossed-model CI stays valid for it. N=9,003 (all data) is an exploratory ceiling point.
+
+### 3. Final values
+
+| | BANKING77 | BillSum (US) | LEDGAR (extension) |
+|---|---|---|---|
+| Test items / arm | 3,080 | 1,000 seeded | 3,000 seeded |
+| N, minimum viable | 200, 1,000, 5,000 | 200, 1,000, 5,000 | 200, 1,000, 5,000 |
+| N, recommended | 77, 200, 1,000, 5,000 | same | same |
+| k_max (grid) | 32 ({8,32} / {4,8,16,32}) | 3 ({1,3} / {1,2,3}) | 32 |
+| Models | Qwen, Phi (rec.: + OLMo) | Qwen, Phi | Qwen, Phi |
+| R (N=77/200/1k/5k), min | –/5/5/5 | –/3/5/3 | –/5/5/5 |
+| R, rec. | 3/8/8/8 | –/3/5/5 | as min |
+| FT finals, min / rec. | 30 / 54 (+15 OLMo) | 22 / 26 | 30 |
+| FT tuning trials (rep. 0), min / rec. | 44 / 64 (+22 OLMo) | 16 / 16 | 44 |
+| SLM ICL test passes, min / rec. | 38 / 111 | 30 / 34 | 38 |
+| SLM ICL validation passes | 24 / 48 | 18 / 18 | 24 |
+| API requests per provider, min / rec. | 66,368 / 135,504 | 10,200 / 18,500 | 64,800 |
+
+Formulas. FT finals = Σ_models Σ_N R_N; tuning = per model 10 trials at each N≤1,000 (lr ×4, epochs {3,5,10}, step-deduplicated, early stopping) + 2 at N=5,000 (lr fixed from N=1,000; BillSum: 4 trials at N≤1,000, none at 5,000). Each classification tuning trial is selected on validation *accuracy*. Run counts: minimum viable fine-tune total = 52 finals + 60 tuning = **112**; recommended = 95 finals + 102 tuning + 42 technique ablation (3 techniques × 2 models × (4 lr + 3 reps)) + 10 variance substudy + 3 head = **252**. SLM ICL test passes per model = Σ_N R_N (retrieved) + random-k (N=1,000 and 5,000 for B77 at R=3 in rec.; N=1,000 R=3 in min) + 1 zero-shot. API requests per provider = n_test × (Σ_N R_N,ret + Σ R_rand + z) + n_val × (|k grid| × |N|) + 0.2 × n_test × |N| (10% repeat, 2 reruns, replicate 1). B77 min: 3,080×(15+3+1)+6,000+1,848 = 66,368. B77 rec.: 3,080×(27+9+2)+16,000+2,464 = 135,504. BillSum min: 1,000×(7+1+1)+600+600 = 10,200 (retrieved: N=200 R=1, N=1,000 R=3, N=5,000 R=3); rec.: 1,000×(12+3+2)+900+600 = 18,500. **Totals, three providers:** min B77+BillSum 229,704 requests; rec. 462,012; LEDGAR +194,400. Indicative cost (standard price): B77 ≈$0.00066 per request summed over three providers ⇒ $44 (min) / $89 (rec.); BillSum ≈ $0.0055 per k=3 request ⇒ ≈$41 / ≈$75; so min ≈ $85, rec. ≈ $165 standard (≈$63 / $120 with batch on B77 and sync on BillSum); LEDGAR ≈ +$56. Recommended exceeds A5's (b) (n_test 3,080, R=8).
+
+### 4. Answers to A5 and A4 items
+- **A5-01.** Correction: `tokenize_example` *raises* when an example exceeds `max_length`, so there is no silent truncation, but BillSum would crash on the first bill. Rule: tokenise all 18,949 train bills once on CPU (pre-run check), set `max_length` per task to the maximum plus margin (expected ≈8–9k), never truncate test items; drop train examples above the cap only if <0.1% and log them.
+- **A5-02.** `tune()` and `select_trials()` exist in `src/train/train.py` (tests pass); A5 looked for a module. They are untested on GPU and need the §5 amendments: tune on replicate 0 only, accuracy-based selection for classification, the restricted grids above.
+- **A5-03 (rewritten API rule).** "Decoding is the most deterministic setting each interface allows: open models greedy; Gemini temperature 0; Haiku 5.5 no sampling parameter (400 otherwise); Luna temperature only if the live test shows it is accepted. Arms at provider-default sampling are labelled *stochastic*, their flip rate is measured on a 10% repeat, and if it exceeds 2% the arm's accuracy is the mean of two full runs." `task_spec.TEMPERATURE` becomes a per-arm record, not a universal claim. Sensitivity: one SLM retrieval cell at temperature 1.0.
+- **A5-04.** BillSum fine-tuning: micro-batch 1, accumulation 16, gradient checkpointing (not implemented in `train.py`: code change), loss/LM head over completion positions only (`logits_to_keep`, valid at micro-batch 1 because there is no padding), eval batch ≤8 sorted by length. First GPU step: 20 steps on the longest 1% of train bills, record peak memory; fallback chain: micro-batch 1 + GC → drop the longest 0.1% of train examples (logged).
+- **A5-05.** The cost driver is k × (pools × N levels) × n_test. Decision: k_max=3, API retrieval only at N=1,000 and 5,000 for confirmatory (R=3/5) plus N=200 at R=1 (2 in rec.), 1,000 items, sync mode, no per-item truncation of shots.
+- **A4-08.** Arm freeze: on replicate 0 (validation only) choose per (task, N): the best FT configuration, per provider the best (k, retriever, technique), and the best provider; write `frozen_arms.json`, commit its hash with the pre-registration tag; replicates 1..R are never re-selected.
+
+### 5. Re-checks against new evidence
+- **A4-03.** My protocol never relied on `hierarchical_paired_bootstrap`. Requirement added: every arm (kNN and API included) writes per-item records with `replicate`, `pool_seed`, `item_id`, so A4's crossed model can run; the bootstrap is sensitivity only at R≥8.
+- **Spiegelhalter et al. (abstract only [U]): up to 200 labels, crossover ≈50.** My lowest confirmatory level (200) sits at the end of that range. Decision: keep N=77 (1 per class) and 200 as estimation points on all datasets (R as in the table), keep the confirmatory family at N=1,000 and 5,000, and pre-register the *bracket* statement across all N from CIs. Small-N crossover evidence is therefore exploratory; read Spiegelhalter in full first (A1-01).

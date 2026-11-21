@@ -2,6 +2,14 @@
 
 For a fresh Claude session continuing this project. Read this, then `docs/PLAN.md` and `docs/research/2026-11-21-verified-findings.md`. The user (PhD student, Istanbul Aydın University) wants replies in **Turkish**, code/commits/paper text in **English**. Rules: never invent numbers, versions, prices or citations (say when unsure); no Claude co-author or attribution trailers in commits (the user's repos forbid them); never overwrite the MSc thesis repo `/Users/yusifnuri/slm-benchmark` (frozen at tag `msc-thesis` = commit `5497c5b`). Hugging Face and API keys are never pasted into chat or stored in the repo.
 
+## Research foundation work (2026-11-21 evening): read this first
+
+The user asked for a multi-agent research foundation before any expensive run. Everything is in `docs/foundation/`: `README.md` (roles, rules), `ISSUE_REGISTER.md` (18 issues, only the integrator edits it; it has NOT yet been updated with Round 2 changes or the new issues I-19..I-23 from `agents/06-redteam.md`), `DECISION_LOG.md` (L-01..L-12), `HUMAN_DECISIONS.md` (H1..H5) and the agent drafts `agents/01..06-*.md`.
+
+Status: Round 1 (A1 literature, A2 datasets, A3 methodology, A4 statistics, A5 feasibility) done and committed. Round 2: A6 red team done (`06-redteam.md`, verdict "reject as designed"; critical: confirmatory grid beyond the known crossover, fine-tuned arm unproven under the corrected prompt, contribution narrower than claimed, plus 15 cross-draft contradictions). The coordinator made the decisions in `DECISION_LOG.md` and sent follow-ups: A1 (find Spiegelhalter et al. 2026 full text, direct searches; appends a "Round 2" section to `01-literature.md`), A3 (apply decisions and write the gated-pilot pass criteria, section "Round 2b" in `03-methodology.md`), A4 (re-simulate power with overlapping pools, 6-contrast family; "Round 2" in `04-statistics.md`), A5 (re-price GPU and API cost and write a gated schedule; "Round 2" in `05-feasibility.md`). Some of these sessions may be unfinished or stalled by the usage limit: check each file's tail and `list_sessions`.
+
+Remaining: (1) collect the A1/A3/A4/A5 Round 2 sections and send them with the A3 file back to A6 for a second pass (A6 ran as a background subagent because sessions cannot be started from an automated turn; start it as a session when the user is present); (2) update `ISSUE_REGISTER.md` and `DECISION_LOG.md` with the outcomes; (3) Round 3: write the nine deliverables (`RESEARCH_FOUNDATION.md`, `DATASET_AUDIT.md`, `EXPERIMENT_PROTOCOL.md`, `STATISTICAL_ANALYSIS_PLAN.md`, `FEASIBILITY_AND_BUDGET.md`, `NOVELTY_AND_RED_TEAM.md`, `DECISION_LOG.md`, `HUMAN_DECISIONS.md`, `PAPER_OUTLINE.md`) from the agent files, pass the eight quality gates with evidence, commit and push; (4) only then ask the user for H1–H5. Do not start any GPU campaign or API spending before the F3 pilot gate and H1.
+
 ## Where things are
 
 | Thing | Where |

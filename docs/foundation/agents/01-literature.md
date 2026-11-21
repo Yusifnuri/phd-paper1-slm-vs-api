@@ -110,3 +110,62 @@ Other claimed items I did **not** read in full: ELearnFit (2405.02710, news summ
 *Contribution wording.* "We measure, for BANKING77, a second classification set and BillSum, how many labelled examples a LoRA-tuned 4B model needs to match retrieval-augmented, cheap commercial APIs trained or prompted from the same pool, and at what query volume self-hosting pays back when tuning is charged. Results are paired, replicated and priced from measured tokens and GPU time, and we report where fine-tuning does not win."
 
 Do not use "first", "novel combination", or any NER or finance claim.
+
+---
+
+# Round 2 (2026-11-21, after coordinator request)
+
+## R2.1 Spiegelhalter, Franke, Hutter: what I could and could not obtain
+
+**Paper PDF: not obtained.** Routes tried, all failed for the PDF itself:
+- arXiv API by title, author and keywords: 0 hits. [V,M] OpenAlex search: not indexed. [V,M]
+- Semantic Scholar Graph API: HTTP 429 on four attempts with back-off (no key). [V,H]
+- OpenReview (`/forum?id=XFSEKRwBKO`, `/pdf?id=XFSEKRwBKO`, `api2.openreview.net/notes?id=...`, variant `DONjzNvUq2`): bot-verification challenge ("Verifying your browser") from curl, the fetch tool and the built-in browser pane. I did not try to solve it. [V,H]
+- neurips.cc poster and workshop pages: only the abstract and the OpenReview link. The ODI workshop site is a template with no paper list. [V,M]
+
+**Authors' public code repository: obtained and read.** https://github.com/us58/prompting-vs-finetuning-slm (MIT; created 2026-10-02; README title "An Accuracy and Cost Analysis of Prompting and Fine-Tuning for Small Language Models", the LIGHT-workshop title). The owner's profile email is a uni-freiburg address and the Hutter-group publication page lists the paper, so I take it as the authors' repo [V,M]. Facts below are from README, `src/cost.py` and `paper_results/accuracy.csv` (a primary source, but not the paper text).
+
+| Item | Finding [V,H unless noted] |
+|---|---|
+| Tasks (17) | Function calling (4), classification (TREC, ecommerce, injury), extraction (currency, dates), format following, text modification (3), code (text2sql, docstring), PII. **No BANKING77, no LEDGAR, no summarisation.** Twelve tasks use generated samples |
+| Models | Qwen3-0.6B, 1.7B, **4B-Instruct-2507**; Qwen3-8B/14B only as `all`-ICL references. gpt-oss-120b as judge. **No commercial API arm** |
+| N and seeds | N ∈ {5, 10, 25, 50, 100, 200}; seeds 0 and 1; fixed 300-item test set per task |
+| ICL | all-samples; CV-greedy (≤30 demos); RAG (10 nearest, bge-m3). Same N-sample pool for all methods |
+| Tuning | LoRA: 27 configurations × 5 folds per run, best by validation accuracy. GEPA prompt optimisation |
+| Cost | `C_total(Q) = C_setup + Q·c_query`, $1.09/GPU-hour on A6000, throughput measured with vLLM, LoRA merged or unmerged, setup = measured training and validation time |
+| "About 50 labels" | From the abstract [V,H]. My recomputation from `accuracy.csv` (mean over 17 tasks, 2 seeds): Qwen3-4B LoRA 0.865 vs best ICL 0.853 at N=25, and 0.894 vs 0.860 at N=50. Direction agrees. Their exact crossover rule is unread [I] |
+
+**Effect on I-10, RQ1, RQ3.** [I]
+- RQ1 is pre-empted for N ≤ 200, narrow tasks, local ICL (including retrieval), Qwen3-4B. It is **not** pre-empted for N 200-5,000, a commercial API arm, BANKING77/LEDGAR-type benchmarks, or long-document summarisation.
+- RQ3/RQ4: the method (setup cost plus per-query cost, measured throughput) is the same family as ours. Novelty cannot rest on "a cost model". It can rest on API prices versus self-hosting, cost per correct output, and a break-even that includes the tuning sweep.
+- Their tuning (27 configs × 5 folds) sets the fairness bar. If our fine-tuning gets less tuning than that, a reviewer will compare us unfavourably. [R] Budget equal, stated tuning effort per arm (I-02).
+- The abstract says data availability, not deployment volume, drives the choice. Our API arm can test that claim, since APIs have no setup cost.
+- Still unread: the paper's text, limitations, the statistical treatment, and whether the full paper differs from the repo. [U] A human with an OpenReview account can fetch it in about one minute (below).
+
+## R2.2 Additional searches and readings
+
+Databases and tools (all by script, 2026-11-21): arXiv API (about 15 queries: title, author and abstract keywords on fine-tuning vs ICL/retrieval and N, summarisation and BillSum, break-even and cost per correct, equal-pool retrieval vs LoRA with an API arm), OpenAlex (6 queries), GitHub search, neurips.cc. Not available: Semantic Scholar (429), OpenReview search (challenge), ACL Anthology search (no API; not queried). [V,H]
+
+New items screened by abstract, none close (no N-curve against ICL or API): 2603.21389 (Task-Specific Efficiency Analysis, 16 models, PER metric), 2607.22969 (few-shot shot-count on AG News, n=200 test, GPT-4o-mini and others), 2610.31657 (cost-aware abstention for IT tickets), 2504.16584 (350M CWE case study), 2409.03454 (fine-tuning size 1k-207k for MT, no ICL), 2606.08605 (fact-checking, encoders vs LLMs), 2026.acl-long.1932 (formal-language theory). [V,M, abstracts only]
+
+**ELearnFit (2405.02710), read from the PDF.** Guan, Chin, Vahabi, arXiv 2024 (class-project style, no venue). Data: **XSum**, not BillSum; 17,806 filtered training samples, 125 test samples (§3, §4.2). Models: GPT-2, Eleuther-Neo, LLaMA-2-7B/13B. Metric: ROUGE-1 only. Methods: ICL (shots, templates, relevant vs random examples), first-layer and LoRA fine-tuning, and a combination. Finding: Rouge-1 local maximum "around 64 training examples" (Fig. 7); relevant-example selection did not help ICL. No commercial API, no cost, no ICL-vs-FT matched-N comparison as the main axis. [V,H] Relevance: the only summarisation N-sweep I found, with a tiny test set and one metric. It does not pre-empt a BillSum study.
+
+**Search conclusion.** [I] After about 30 queries across arXiv, OpenAlex, WebSearch and GitHub I found no paper that has (a) an N-curve with PEFT, retrieval ICL and a commercial API on one pool, or (b) a long-document summarisation N-curve against ICL. This is absence in a limited search, not proof. I cannot search Semantic Scholar, OpenReview or ACL Anthology programmatically. A final manual check there is needed before submission.
+
+## R2.3 Revised assessment
+
+- **A1-01:** partly resolved (code and data read, paper not). Remains open only for the paper text.
+- **A1-04:** partly resolved. Searches listed above; manual Semantic Scholar/OpenReview/ACL Anthology check still needed before submission.
+- **I-10:** [I] lower from CRITICAL to **HIGH**, conditional on dropping the claims in "must not claim" below. The classification-only crossover with cost is now covered twice over (Pecher on benchmarks, Spiegelhalter on narrow tasks up to 200 labels), plus Bertsch for retrieval vs fine-tuning.
+- **Reviewer's "minor extension" test.** A reviewer will say the study is minor if it reports (i) a BANKING77/CLINC150 curve with a local model and retrieval ICL, (ii) a cost model of setup plus per-query cost, and (iii) a crossover at tens to hundreds of labels. All three are already published. It stops being minor only if the paper's weight is on: **a commercial-API arm with retrieval from the same pool, priced from billed tokens; a BillSum N-curve with a validated metric; N out to 5,000; matched, stated tuning effort; and cost per correct output with a break-even that charges the tuning sweep.** If the API arm or the summarisation arm fails, the paper should be scoped as a replication-plus-extension workshop paper.
+- **Must not claim:** first or novel comparison of fine-tuning vs ICL by label count; first cost-aware comparison; any claim about NER or finance; any claim that depends on the unread Spiegelhalter paper.
+
+## R2.4 Revised gap statement and contribution wording ([R])
+
+*Gap.* Existing work locates the fine-tuning/ICL crossover at tens to hundreds of labels for classification and narrow tasks (Pecher 2025; Spiegelhalter 2026, up to 200 labels with local Qwen3 models), shows retrieval ICL competing with LoRA on open models (Bertsch 2025), and prices self-hosting against GPT-4o for one task (Mansuri 2026). In the sources I could read, none compares tuned small open models with retrieval-augmented cheap commercial APIs on the same labelled pool at N up to several thousand, includes a long-document summarisation curve, and charges the tuning cost in the break-even.
+
+*Contribution wording.* "We ask when a LoRA-tuned 4B model is worth training instead of calling a cheap commercial API with retrieved demonstrations from the same N labelled examples. On BANKING77, a second classification set and BillSum, we report paired, replicated accuracy curves for N up to 5,000 and the per-query price at which self-hosting pays back, with the tuning sweep charged, and we report where fine-tuning does not win."
+
+## R2.5 What the human can do in one minute
+
+Open https://openreview.net/pdf?id=XFSEKRwBKO in a browser, sign in or pass the check, and save the PDF into the repository (for example `docs/research/papers/spiegelhalter-2026.pdf`). If that id fails, try https://openreview.net/forum?id=DONjzNvUq2. I can then extract tasks, tuning protocol, statistics and the crossover rule with `pdftotext` and update the matrix.
