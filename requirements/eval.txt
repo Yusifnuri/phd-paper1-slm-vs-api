@@ -1,0 +1,18 @@
+# Evaluation and statistics harness (src/eval, tests/eval).
+# Resolved on 2026-11-21 with Python 3.13 on macOS (CPU only).
+# Install: python -m pip install -r requirements/eval.txt
+numpy==2.5.5
+scipy==1.18.1
+seqeval==1.2.2
+rouge-score==0.1.2
+# rouge-score dependencies, pinned for reproducibility
+absl-py==2.5.1
+nltk==3.10.4
+six==1.17.0
+# test-only: pytest, and scikit-learn as an independent macro-F1 cross-check
+pytest==9.2.0
+scikit-learn==1.9.1
+
+# Optional, needed only to compute BERTScore (pulls in torch and transformers,
+# downloads microsoft/deberta-xlarge-mnli). Not used by the tests.
+# bert-score==0.3.13
