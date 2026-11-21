@@ -175,3 +175,69 @@ Formulas. FT finals = Σ_models Σ_N R_N; tuning = per model 10 trials at each N
 ### 5. Re-checks against new evidence
 - **A4-03.** My protocol never relied on `hierarchical_paired_bootstrap`. Requirement added: every arm (kNN and API included) writes per-item records with `replicate`, `pool_seed`, `item_id`, so A4's crossed model can run; the bootstrap is sensitivity only at R≥8.
 - **Spiegelhalter et al. (abstract only [U]): up to 200 labels, crossover ≈50.** My lowest confirmatory level (200) sits at the end of that range. Decision: keep N=77 (1 per class) and 200 as estimation points on all datasets (R as in the table), keep the confirmatory family at N=1,000 and 5,000, and pre-register the *bracket* statement across all N from CIs. Small-N crossover evidence is therefore exploratory; read Spiegelhalter in full first (A1-01).
+
+
+## Round 2b: decisions applied (2026-11-21)
+
+Applies the coordinator's decisions 1–5. Where this section differs from Round 2 and the body, **this section governs**. Arithmetic is mine; A5 re-prices, A4 re-simulates.
+
+### 1. Grid after the decisions
+- **N:** confirmatory {200, 1,000, 3,000} on BANKING77 and BillSum; LEDGAR exploratory at the same N (k_max 8, prompt ≈1.8k tokens). N=77 (BANKING77) and 100 (LEDGAR), one per class, are exploratory for ICL/kNN only. No fine-tuning at N<200. N=5,000 is dropped.
+- **Overlap [V arithmetic]:** two N=3,000 pools from 9,003 BANKING77 rows share 3,000²/9,003 ≈ 1,000 items (33%); finite-population factor 1−3,000/9,003 = 0.67 on the pool variance (SD ×0.82). BillSum (≈17,950 usable rows): ≈500 shared (17%), factor 0.83. The estimand is stated as conditional on the finite training set; A4 re-simulates with overlapping pools.
+- **Pool sampling and estimand.** *Random pools* (N≥1,000): δ = expected FT−ICL gap for a practitioner who labels N random items (natural class prior); the A3-07 caveat applies at N=3,000. *Class-stratified round-robin pools* (N=200 only, BANKING77 and LEDGAR; BillSum has no classes and is random throughout): δ = gap when labelling is class-covered (2–3 per class, uniform prior); it is a separately named condition and is never pooled with the random cells. A **random-vs-stratified table at N=200, R=3**, both models, all arms, quantifies the coverage effect (random leaves 7.5% of BANKING77 test mass in absent classes, a 92.5% ceiling for any model that cannot name unseen classes).
+- **Validation:** val(N)=min(1,000, N): the first N rows of the fixed 1,000-row validation split, so val(200)=200 items (accuracy SE ≈3 points: selection is noisy by design, which is the true-few-shot condition). Sensitivity: the full 1,000.
+- **Equal tuning, 4 trials per system, on replicate 0 per model × N, then frozen.** FT: 4 learning rates ({5e-5, 1e-4, 2e-4, 4e-4}, rsLoRA /4); each trial trains one cosine schedule to E_max epochs (N=200: 10; N=1,000: 10; N=3,000: 5; S_min 200 floor) and evaluates validation accuracy (loss as tie-break) at five checkpoints, keeping the best (early stopping patience 2). Chosen (lr, checkpoint epoch E*) is applied to replicates 1..R, which run the same schedule and save the adapter at E*. ICL: 4 values of k (classification {4,8,16,32}; LEDGAR {1,2,4,8}; BillSum {1,2,3} + the better of two retrievers). No prompt tuning. Tuning GPU-hours and dollars are charged in cost-per-correct.
+- **R:** BANKING77 8; BillSum 5; no confirmatory cell below 5; run replicate-major; after R=5, blinded variance re-estimation, extend to ≤10 if power for 3 points is <80%. LEDGAR exploratory R=3. Models: Qwen3-4B and Phi-4-mini; OLMo-3 only if time remains (B77: +12 tuning, +24 finals). API random-k only at N=1,000, R=3. kNN (best of k∈{1,5,16}, chosen on val(N)) is a first-class arm in every cell and every table.
+
+| | BANKING77 | BillSum | LEDGAR (expl.) |
+|---|---|---|---|
+| Test items | 3,080 | 1,000 seeded | 3,000 seeded |
+| N / R | 200 / 8 (+3 random), 1k / 8, 3k / 8 | 200, 1k, 3k / 5 | 200, 1k, 3k / 3 |
+| FT tuning trials | 2 models × 3 N × 4 = 24 | 24 | 12 (Qwen only) |
+| FT finals | 2 × 3 × 8 + 6 = 54 | 2 × 3 × 5 = 30 | 9 (Qwen only) |
+| FT total | **78** | **54** | **21** |
+| SLM ICL test passes | 2 × (24 + 3 retr. + 3 rand. + 1) = 62 | 2 × (15+3+1) = 38 | 2 × (9+3+1) = 26 |
+| SLM ICL val passes | 2 × 4 × 3 = 24 | 24 | 24 |
+| API requests, selected provider | 106,128 | 23,200 | ≈39,000 |
+| API requests, each other provider | 50,688 | 14,200 | (not run) |
+
+API arithmetic (B77): selected provider (R=8, N∈{200,1k,3k}, plus the 3 random-pool N=200 replicates) = 3,080 × (24+3) retrieved + 3 × 3,080 random-k + 3,080 zero-shot + validation 4 × (200+1,000+1,000) + repeats 10% × 2 × 3 N × 3,080 = 83,160 + 9,240 + 3,080 + 8,800 + 1,848. Other providers (R=3, no random-k) = 3,080 × 12 + 3,080 + 8,800 + 1,848. The selected provider is the best on replicate-0 validation (frozen-arm rule, A4-08), so all three providers run the validation stage. BillSum: selected = 1,000 × (15 + 3 + 1) + 3,600 + 600; others = 1,000 × (9 + 1) + 3,600 + 600. Totals: 207,504 (B77) + 51,600 (BillSum) = **259,104 requests**. Indicative standard cost, A5 per-request rates, ≈1.0–1.3k tokens (B77) and 9.3k (BillSum k=3): B77 ≈$41–55 (selected = Haiku/Luna vs Gemini), BillSum ≈$60–75 sync, LEDGAR ≈$10–18; batch halves B77. **Pre-priced flip-rate branch:** if the selected provider's flip rate exceeds 2%, doubling its B77 test runs adds ≈49,000 requests (≈$7–20) and BillSum ≈ 19,000 (≈$25–40).
+**GPU flag for A5:** BillSum N=3,000 is now the largest cell (9 runs per model, 0.8–2.1 h each by A5's scaling ⇒ 14–38 h for two models, plus N=1,000 ≈ 4–13 h). First lever if the pilot's throughput is at the slow end: BillSum N=3,000 at R=3, declared exploratory.
+
+### 2. API-protocol rule, correct under either outcome for Haiku
+Facts [V, red team]: the Haiku migration page says to omit `temperature`/`top_p`/`top_k`; "returns a 400" for sampling and `thinking: {"type":"disabled"}` were **not** found there; thinking counts toward `max_tokens`. Rule, per provider, set by the live test (§3 stage A), not by documentation:
+1. **Sampling.** Send `temperature=0` only where a 50-item test shows the call succeeds. Otherwise omit it; the arm is labelled *stochastic* (provider default) and its flip rate is measured (10% repeat ×2 reruns, already in the request formulas). If flip rate >2%, the arm's accuracy is the mean of two full runs (pre-priced above). `TEMPERATURE` in `task_spec` is a per-arm field.
+2. **Reasoning.** Use the lowest setting the API accepts (disabled, else lowest effort). The arm is labelled *reasoning-off* only if reported reasoning tokens are 0 for every test item; otherwise *reasoning-minimal*, with billed reasoning tokens in the cost. Never compare a reasoning-minimal arm silently with a reasoning-off arm.
+3. **Cap.** If reasoning tokens count against the cap, set `max_output_tokens = 32 + (p99.9 of reasoning tokens observed in the test, ≥64)`; else 32. Truncation (`stop_reason`/`finish_reason` = max tokens) counts as invalid, is reported, and a rate >1% in the smoke test stops the run until the cap is re-tested.
+4. Record `model_id_returned`, usage fields, price date; run each provider's confirmatory cells inside 72 h.
+5. Generation vs head: all arms are "deployed generative systems"; constrained decoding is reported for SLM arms only and labelled as such (F8d).
+
+### 3. Gated pilot protocol (fixed before any run; exploratory, validation only, test never read, never pooled with confirmatory)
+
+**Stage 0 (no GPU, no API) blockers** — all must pass before stage 1: (a) the three branches merged into one tagged commit; `git_commit` logged (pilot logged "unknown"); the prompt-equality test unskipped and passing; (b) `?` normaliser fix (A3-02) with the gold-label self-parse test; (c) tuned-procedure code (checkpoint-epoch evaluation, 4-lr tuner, val(N), replicate-0 freeze, E* checkpoint); (d) kNN baseline on pinned `bge-small` revision (CPU), producing validation kNN accuracy for every pool used below; (e) FT-vs-API rendered strings identical on 20 items.
+
+**Stage 1 (≈0.5 GPU-h): diagnostics.** `diagnose_loss.py`, 16 examples, new prompt: Qwen, Phi (LoRA, fp32, QLoRA), OLMo (DoRA, LoRA). *Pass:* all losses finite; first-step mean completion-token loss ≤3.0 for Qwen and ≤6.0 for Phi (and always <ln|V|≈12); Phi bf16 vs fp32 within 5%, Phi QLoRA within 20% of LoRA; OLMo DoRA finite for 20 steps after a stated fix, else OLMo is dropped and the failure reported. *Phi loss >6:* acceptable only if the per-token table shows the excess on end-of-turn tokens and stage 2 later passes.
+
+**Stage 2 (≈1.5–2.5 GPU-h): Qwen3-4B, BANKING77.** N=200 (stratified) and N=1,000 (random); replicate 0 tunes (4 lr × 2 N = 8 trials), replicates 1 and 2 are finals (4 finals), plus one random-pool N=200 final. Report accuracy on val(N) and on the fixed 1,000 (pilot only), invalid rate, kNN on the same pools, wall-clock, peak memory.
+
+| Gate | Threshold (all on validation) |
+|---|---|
+| G1 invalid output | mean <5% at N=200 and N=1,000, no run >8% |
+| G2 vs kNN at N=200 | FT accuracy ≥ kNN accuracy − 5 points (same stratified pool) |
+| G3 vs kNN at N=1,000 | FT ≥ kNN − 5 points |
+| G4 label-budget slope | accuracy(1,000) ≥ accuracy(200) + 8 points (pilot with the old prompt: 0.17 → 0.75) |
+| G5 tuning sanity | chosen lr not at the grid edge in both N, else extend the grid by one value and repeat |
+| G6 stability | spread of the two replicates ≤5 points (N=200), ≤3 points (N=1,000) |
+| G7 training health | no non-finite loss; final train loss ≤ ⅓ of first-step loss; time per run within 2× of A5's band |
+
+**Stage 3 (≈1–1.5 GPU-h): Phi-4-mini**, same design with one final replicate per N, gates G1–G5, G7. Phi failing alone means one fix cycle, then Phi is dropped and the paper has one fine-tuned model (re-scope noted below).
+**Stage 4 (≈0.7 GPU-h): BillSum memory and throughput**, Qwen: 20 steps on the longest 1% of train bills, micro-batch 1, gradient checkpointing, completion-only LM head. *Pass:* no OOM at the longest example, measured tokens/s inside A5's band; output feeds A5-11. Needs the BillSum loader and the checkpointing code (blocks stage 4 only).
+**Stage A (no GPU, ≈$1–3, user's keys): API live test**, 50 validation items per provider × {zero-shot ×3 repeats, retrieved k=8} + 10 BillSum items k=3. Records: `temperature` accepted?, thinking/effort setting accepted, reasoning tokens reported, whether they count toward the cap, logprobs available, truncations, billed vs `count_tokens`, 3-run flip rate. *Pass:* parse failure <5%, truncations 0 at the §2 cap, usage fields present.
+
+**Total ≈ 3.7–5.2 GPU-h**, each stage gated by the previous one.
+
+**Outcomes.** *Go:* G1–G7 pass for Qwen (and Phi), stage 1 resolved or explained, stage A passes ⇒ freeze `frozen_arms` procedure and pre-registration, start the campaign. *Fix and repeat* (at most two cycles of ≈2 GPU-h): any of G1, G2, G3, G5, G6 failing while losses are healthy. Fix order: extend/shift the lr grid, double E_max or S_min, re-check label masking and template, batch size; each fix is logged and the failing gate re-run. *Re-scope:* G2 still fails by >10 points after two cycles, or stage 1 shows a pipeline defect in the training code ⇒ do not run the FT arm as designed. Options: head-based fine-tuning as the FT arm, FT confirmatory only at N≥1,000, or a paper centred on kNN/ICL/API cost. Phi or OLMo failing alone ⇒ drop that model, report the failure.
+
+### 4. A3-04 missing components
+**Block the pilot:** tuned-procedure code; kNN baseline plus embedder revision pin; merged tagged commit with working `git_commit` and unskipped equality test; `?` normaliser fix; BillSum loader plus checkpointing (stage 4 only); a one-line fix of the `diagnose_nan.py` message.
+**Can wait until stage 2 passes:** SLM ICL harness (vLLM) and shared few-shot rendering in `task_spec` (needed before the campaign, not for the FT gate); API repeat support, replicate id in API records; LEDGAR loader; test-read ledger and `final_eval`; near-duplicate similarity code; head-based FT bridge; cost log scripts.

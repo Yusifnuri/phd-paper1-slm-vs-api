@@ -141,3 +141,95 @@ Illustration [I, not a result]: BANKING77, Qwen3-4B N=5000, accuracy assumed 0.9
 **I-15 (compute/cost estimates):** superseded by §2–3: token counts are measured, GPU-hours are given as ≈ 2.6–3× ranges, but throughput at 500 and 2.4k tokens is still extrapolated. Keep OPEN, HIGH until A5-11's benchmark; then FIXED-UNVERIFIED.
 
 **Human-dependent:** confirm weekly-credit carry-over and the credit-to-dollar value; provide API keys for the 50-item live test.
+
+
+---
+
+## Round 2: re-pricing of the decided design (2026-11-21)
+
+Labels as above. Basis: coordinator's decided design (B77 + BillSum confirmatory, Qwen3-4B + Phi-4-mini, N ∈ {200, 1000, 3000}, R = 8 / 5, 4 trials per system, LEDGAR exploratory). Same throughput band and token counts as §1.2/§2 (measured tokens, FLOP-based throughput [U]); all GPU numbers are ranges (fast–slow), not intervals. Scripts: scratchpad `s/r2.py`, `r2api.py`.
+
+### R2.0 Correction to A5-02, and a cost trap in `tune()`
+`tune()` and `select_trials()` exist (commit `b12f80c`); I looked for a module, not a function. But as coded, `select_trials` retrains **from scratch for every (lr, epochs)** pair (EPOCH_GRID 3, 5, 10, 20, 40 ascending, patience 2, duplicates removed by the S_MIN step floor) [V, code]. That is ≥ 3 epoch-settings per lr, i.e. ≥ 18 epochs of training per lr, up to 78. The decided protocol ("epochs by early stopping inside the run", 4 trials) is a **code change** (A5-12) and I priced the decided one: each trial = 1.5–2× the final run's sample-passes (best epoch + 2 patience epochs), plus a validation-loss/accuracy pass. Priced as coded, BillSum N=1000 tuning alone would be 6–43 GPU-h per model; it is infeasible.
+
+### R2.1 GPU-hours (vLLM evaluation, LoRA, both models)
+
+Per-run times (fast–slow): B77 N=3000 Phi 6–20 min, Qwen 6–21 min; BillSum N=3000 Phi **0.72–2.0 h**, Qwen **0.75–2.1 h**. BillSum tuning arithmetic fixed (red-team item): trials = 4 lr × (R2.0 length), **per model × N, once**, not 2 lr × 3 epoch settings.
+
+| Component | Formula | GPU-h (fast–slow) |
+|---|---|---|
+| B77 fine-tune finals | 2 models × 8 reps × (N=200, 1000, 3000), 3,080 test items per run | 3.5–10.8 |
+| B77 tuning | 4 trials × 2 models × 3 N | 2.1–8.5 |
+| B77 SLM ICL + kNN | per model: 24 retrieved + 3 (N=77) + 3 random-k + 1 zero-shot test passes + validation (4 k × 3 N); ×2 models | 1.0–3.5 |
+| BillSum finals | 2 × 5 reps × 3 N, 1,000 test items | 12.5–33.0 |
+| BillSum tuning (decided: all N) | 4 trials × 2 models × 3 N | **14.4–51.2** |
+| BillSum SLM ICL | per model 15 retrieved + 3 random-k + zero-shot + validation, k ≤ 3; ×2 | 1.9–5.3 |
+| **Decided design total** | | **35.5–112** |
+| Gated extras (F3 pilot ≈ 3, throughput benchmark 1, OOM probe and vLLM LoRA load test ≈ 1–2) | | 5–6 |
+| LEDGAR exploratory (k_max 8, 3,000 items, N = 1000, 3000, R=3, both models) [I] | not in the total | +3–9 |
+
+Memory (BillSum N=3000, micro-batch 1, gradient checkpointing, LM head only on completion positions): ≈ 25–45 GB for Phi/Qwen at the 6.7k-token maximum [I, ±40%]; no OOM expected if A3-04's rule (probe the longest 1% first) passes. Without `logits_to_keep` the fp32 logits at 6.7k × 200k are ≈ 5.4 GB ×3.5, which still fits at micro-batch 1.
+
+### R2.2 API cost per provider (request counts by formula)
+
+n_test = 3,080 (B77), 1,000 (BillSum). Per provider: `requests = n_test × (Σ_N R_N,retrieved + R_rand + 1 zero) + n_val × 4 k × (N levels) + 0.2 × n_test × 3` (10% repeat, 2 reruns). Confirmatory provider ("full"): B77 R = 8 at 3 N, N=77 at R=3 (exploratory), random-k N=1000 R=3; BillSum R = 5. Other two ("R=3"): R = 3 at 3 N, no N=77. Validation items per cell: min(1,000, N). Tokens: B77 retrieved/random 900–1,220, zero-shot 510; BillSum k ≤ 3: 6,950–9,300, zero-shot 2,250; outputs 8 / 250; billing multipliers Haiku 1.0–1.35, Luna 0.95–1.1, Gemini 0.95–1.1 [U].
+
+| Provider role | B77 requests | BillSum requests | Standard $ | Batch (all) $ |
+|---|---|---|---|---|
+| Haiku, full | 106,436 | 28,400 | 33–56 | 16–28 |
+| Haiku, R=3 | 50,688 | 22,400 | 23–38 | 11–19 |
+| Luna, full | 106,436 | 28,400 | 31–46 | 16–23 |
+| Luna, R=3 | 50,688 | 22,400 | 22–32 | 11–16 |
+| Gemini, full | 106,436 | 28,400 | 80–118 | 40–59 |
+| Gemini, R=3 | 50,688 | 22,400 | 55–81 | 28–40 |
+
+Totals by confirmatory provider (standard / **mixed** = batch for B77, sync for BillSum on Luna and Gemini because their batch queues hold only ≈ 1.4–2k BillSum requests per wave [V limits above] / batch for everything): Haiku $110–168 / **$85–128** / $55–84; Luna $109–165 / **$88–130** / $55–82; Gemini $124–187 / **$99–147** / $62–94. B77 at 1.2k tokens fits Luna's 20M-token queue in ≈ 16k-request waves and Gemini's 10M in ≈ 8k-request waves (7 and 13 waves for 106k requests), so Gemini B77 batch is slow [I].
+Extras: 5-replicate validation-split discordance runs (B77 N=1000, 1,000 items; BillSum 300 items; 3 providers) **$7.5–11.5**; 50-item live tests per provider < $1.
+**Thinking-token margin (priced):** hidden output tokens per request, [U]: Gemini minimal thinking 0–300 × $1.50/M, Haiku 0–500 × $0.50/M only if thinking cannot be disabled (my page read says `thinking: {type: "disabled"}` is accepted at effort ≤ high; red team could not find it, so the live test decides), Luna 0. Margin: Gemini +$33–61 (more if confirmatory), Haiku +$0–34. Worst-case margin across the whole design is $51–79.
+Total API budget: mixed + extras + worst margin = **$93–140 best case; up to ≈ $220 if Gemini is confirmatory with maximal thinking.** Standard-price mode exceeds $200 only in that worst case.
+
+### R2.3 Rate band reconciliation (A4 vs A5)
+Use **$3.6–6.0/h** (on-demand, own pages: RunPod Community $3.59 to Together HGX $5.99; DigitalOcean $4.47, Modal ≈ $4.54, Jarvislabs $4.59, Nebius $5.40; all SXM/HGX, **no NVL price exists on any page read**, so the NVL value is not like-for-like). A4's $2.3 corresponds to Jarvislabs's *spot* price ($2.29, interruptible, from verification 04) and is not an on-demand rate; keep it only as a sensitivity row. Rental equivalent of the design after the first two cuts (R2.4): 23–71 h → $83–426.
+
+### R2.4 Does it fit, and cut order
+Available: ≈ 60–75 productive GPU-h in total (§3), of which ≈ 5–6 are the gated items, leaving **≈ 54–70 for the grid**. The decided design needs **35.5–112 h**, so it fits only if throughput is in the fast-to-middle part of the band (geometric mid ≈ 63 h); at the slow end it does not. It fits the $50–200 API budget in mixed mode.
+
+Cut ladder (cumulative GPU-h, grid only; first cut first):
+
+| # | Cut | Effect | Cumulative GPU-h |
+|---|---|---|---|
+| 0 | Decided design | | 35.5–112 |
+| 1 | BillSum tuning at N=3000: reuse N=1000's lr and epochs (A5 addition to the coordinator's order: it is the largest single item, −9 to −33 h; weakens F5 symmetry, so report it) | −9 to −33 | 26.5–79 |
+| 2 | LEDGAR (not in total) and OLMo (already out) | 0 | 26.5–79 |
+| 3 | Random-k (GPU −0.4 to −0.9 h; API ≈ −$10–25) | small | 26–78 |
+| 4 | BillSum N=3000 R: 5 → 3 (status becomes exploratory; A6 F7: R=3 invalid for confirmatory) | −3 to −8 | 23–71 |
+| 5 | BillSum N=3000 dropped; confirmatory BillSum = N 200, 1000 | −5 to −13 | 19–58 |
+| 6 | BillSum with Qwen only | −6 to −18 | 18–54 |
+API-only levers: BillSum API validation 300 items instead of 1,000 (−$22–39), random-k out (−$10–25), N=77 out (≈ −$2).
+
+Go/no-go rule, written now: at the end of week 2, if the benchmark gives Qwen BillSum N=3000 final run ≤ 1.2 h and B77 N=3000 ≤ 12 min, keep the design with cut 1; if 1.2–2.0 h apply cuts 1 and 4; if > 2.0 h apply cuts 1, 5 and 6 and run BillSum as Qwen-only.
+
+### R2.5 Build-and-run schedule (weeks start on the Sunday credit reset)
+
+[USAGE-HEAVY] = long coding/debugging loops that burn the user's Claude allowance, more so if run in parallel sessions; parallel sessions shorten calendar time, not usage.
+
+| Week | CPU/coding (dependency order) | GPU (≈13.3 h) / API |
+|---|---|---|
+| W1 Nov 22–28 | 1. Merge branches to one tagged commit, pin requirements (A5 §5). 2. Shared few-shot rendering in `task_spec`, kNN, embedder revision pin, replicate id in API records, test-read ledger [A3-04, USAGE-HEAVY]. 3. BillSum/LEDGAR loaders; tokenise all 18,949 train bills, set `max_length` [A3-04]. 4. `tune()` change to in-run early stopping + restricted grids (A5-12) [USAGE-HEAVY]. | GPU ≈ 3 h: 1-h throughput benchmark at 500 and 2.4k tokens, BillSum 20-step OOM probe. API: 50-item live tests per provider (keys), discordance runs ($8–12) |
+| W2 Nov 29–Dec 5 | 5. SLM ICL harness (vLLM, LoRA serving test) [USAGE-HEAVY]. 6. BillSum gradient checkpointing + `logits_to_keep` [USAGE-HEAVY]. 7. A4-04 crossed-model/ratio function. 8. `frozen_arms.json` writer, cost estimator. | GPU ≈ 6 h: **F3 pilot** (Qwen B77 N=200, 1000, new prompt, tuned), vLLM adapter load test. **Gate Dec 5** (F3 pass + benchmark rule above) |
+| W3 Dec 6–12 | API repeats, flip-rate logging; pre-registration tagged | Replicate 0 tuning, B77 both models (2–8 h); API validation (provider choice, k) |
+| W4 Dec 13–19 | BillSum tuning code check | Replicate 0 BillSum tuning N ≤ 1000; freeze arms (hash committed) |
+| W5–W6 Dec 20–Jan 2 | analysis scripts; A4's human faithfulness study (60 bills, author time, no dollars) | Main runs, replicate-major: B77 R=8, BillSum R=5 (≈ 25–45 h over two weeks at the middle of the band) |
+| W7 Jan 3–9 | blinded variance re-estimation; extension to R=10 only if time | finish runs; API confirmatory cells inside 72 h per provider |
+| W8 Jan 10–16 | writing; reruns of failed cells only | reserve ≈ 8–10 h |
+LEDGAR only if the gate passes and W7 ends early.
+
+### R2.6 New or updated issues
+| ID | Issue | Sev | Action |
+|---|---|---|---|
+| A5-02 (withdrawn) | `train.tune` exists | - | closed |
+| A5-12 | `select_trials` retrains from scratch per (lr, epochs), ≥ 18 epochs per lr; decided protocol needs in-run early stopping, else BillSum tuning is 6–43 GPU-h per model | HIGH | recode, test on CPU, keep restricted grid |
+| A5-13 | Design needs 35.5–112 GPU-h vs ≈ 54–70 available; BillSum (finals 12.5–33 + tuning 14–51) is ≈ 80% of it | HIGH | cut ladder, gate rule |
+| A5-14 | Thinking-token cost unmeasured (Gemini cannot be off, Haiku may); margin up to $51–79 | MEDIUM | live test, `usage` fields |
+| A5-15 | Gemini batch waves of ≈ 8k (B77) and ≈ 700 (BillSum) requests; confirmatory-provider choice moves cost by ≈ $15–40 | LOW | sync fallback |
+Register view: I-15 stays HIGH (ranges now re-priced, throughput still unmeasured). I-09 stays OPEN (live test pending).
