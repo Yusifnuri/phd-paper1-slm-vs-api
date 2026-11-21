@@ -24,7 +24,8 @@ For a fresh Claude session continuing this project. Read this, then `docs/PLAN.m
 ## Pilot status
 
 - Smoke test (N=50, 10 steps): Phi-4-mini-instruct and Qwen3-4B-Instruct-2507 ran OK (train 1.8 s and 2.2 s, peak 14.0 and 17.0 GB). OLMo-3-7B-Instruct was still downloading; whether transformers 4.57.3 supports it was unverified.
-- Next: `cd ~/paper1/pilot && PYTHONUTF8=1 nohup python3 scripts/run_pilot.py --hub-repo yusifnuri/paper1-pilot-adapters > pilot.log 2>&1 &` (default: all registry models × techniques at N=1000, seed 42). Never run two grids at once: it corrupts the timing measurements. Read `runs/pilot.jsonl`, then recompute the GPU-hour estimate in `docs/PLAN.md`.
+- Real pilot started ~18:55 Istanbul on the server (12 runs: 3 models × lora/qlora/dora/rslora, N=1000, seed 42, log `~/paper1/pilot/pilot.log`, results `runs/pilot.jsonl`, adapters to the private Hub repo `yusifnuri/paper1-pilot-adapters`). First result: Phi-4-mini LoRA N=1000 trained in 18 s with 0.749 validation accuracy. The server runs code at `3a5c3a3`; the pilot-train session has since committed `426d98e` (pins matched to the server's real versions, an architecture check) which has NOT been copied to the server yet: copy it only after the grid finishes.
+- (Original instruction, for a rerun) `cd ~/paper1/pilot && PYTHONUTF8=1 nohup python3 scripts/run_pilot.py --hub-repo yusifnuri/paper1-pilot-adapters > pilot.log 2>&1 &` (default: all registry models × techniques at N=1000, seed 42). Never run two grids at once: it corrupts the timing measurements. Read `runs/pilot.jsonl`, then recompute the GPU-hour estimate in `docs/PLAN.md`.
 
 ## Open decisions (Step 0, user)
 
