@@ -130,9 +130,9 @@ def test_select_loss_metric_for_summarisation():
     assert tuning.select(trials, BASE_LR_GRID, "loss", 20)["lr"] == 2e-4
 
 
-def test_lr_grid_extended_after_pilot_g5():
-    assert lr_grid("lora") == (5e-5, 1e-4, 2e-4, 4e-4, 8e-4)  # pilot: chosen lr was the top (4e-4)
-    assert len(lr_grid("rslora")) == 5 and lr_grid("rslora")[-1] == pytest.approx(2e-4)
+def test_lr_grid_shifted_after_pilot_g5_keeps_four_trials():
+    assert lr_grid("lora") == (1e-4, 2e-4, 4e-4, 8e-4)  # pilot: top value 4e-4 chosen, 5e-5 worst
+    assert len(lr_grid("rslora")) == 4 and lr_grid("rslora")[-1] == pytest.approx(2e-4)
 
 
 # ------------------------------------------------------------------ frozen arms
