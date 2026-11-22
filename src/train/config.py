@@ -10,6 +10,8 @@ from .task_spec import MAX_NEW_TOKENS, TASK  # noqa: F401  (TASK re-exported)
 
 TECHNIQUES = ("lora", "qlora", "dora", "rslora")
 SAMPLING = ("random", "stratified")
+TASKS = ("banking77", "billsum")
+BILLSUM_MAX_LENGTH = 8704  # results/billsum_token_stats.json: max Qwen example 7,970 + 256, to a multiple of 512
 
 # Thesis settings (docs/PLAN.md Step 3).
 LORA_R = 16
@@ -66,7 +68,10 @@ class TrainConfig:
     stop_step: Optional[int] = None       # stop training here (frozen arm); None -> end of schedule
     frozen_arms: Optional[str] = None     # tune: write here; final run: read lr/schedule/stop from here
     arm_sampling: Optional[str] = None    # use the arm frozen for this sampling (e.g. random-pool N=200 final)
-    max_length: int = 1024  # ceiling: the shared prompt (77 labels) alone is ~500 tokens
+    task: str = "banking77"   # "banking77" (classification) or "billsum" (summarisation, loss-based selection)
+    max_length: Optional[int] = None  # None -> 1024 (banking77; the 77-label prompt alone is ~500 tokens) or 8704 (billsum)
+    grad_checkpointing: Optional[bool] = None  # None -> on for billsum, off for banking77
+    val_cap: int = 1000   # val(N) = min(val_cap, N) rows used for tuning (BillSum: a budget lever, A5)
     lora_r: int = LORA_R
     lora_alpha: int = LORA_ALPHA
     lora_dropout: float = LORA_DROPOUT
@@ -80,6 +85,12 @@ class TrainConfig:
     checkpoint_dir: str = "checkpoints"
 
     def __post_init__(self) -> None:
+        if self.task not in TASKS:
+            raise ValueError(f"task must be one of {TASKS}, got {self.task!r}")
+        if self.max_length is None:
+            object.__setattr__(self, "max_length", BILLSUM_MAX_LENGTH if self.task == "billsum" else 1024)
+        if self.val_cap < 1:
+            raise ValueError("val_cap must be >= 1")
         if self.replicate is not None:
             from .tuning import replicate_seeds
             pool_seed, seed = replicate_seeds(self.replicate)
@@ -110,7 +121,11 @@ class TrainConfig:
 
     @property
     def micro(self) -> int:
-        return self.micro_batch or self.batch
+        return self.micro_batch or (1 if self.task == "billsum" else self.batch)
+
+    @property
+    def use_grad_checkpointing(self) -> bool:
+        return self.task == "billsum" if self.grad_checkpointing is None else self.grad_checkpointing
 
     @property
     def grad_accum(self) -> int:
@@ -140,10 +155,12 @@ class TrainConfig:
 
 
 def run_id(model_id: str, technique: str, n: int, seed: int, pool_seed: int = 42,
-           sampling: str = "random") -> str:
-    """Unique, filesystem-safe id of one run (a replicate is pool_seed x seed)."""
+           sampling: str = "random", task: str = "banking77") -> str:
+    """Unique, filesystem-safe id of one run (a replicate is pool_seed x seed). BANKING77 ids are
+    unchanged; other tasks get a task prefix."""
     tag = "" if sampling == "random" else "__strat"
-    return f"{model_id.split('/')[-1]}__{technique}__n{n}__seed{seed}__pool{pool_seed}{tag}"
+    prefix = "" if task == "banking77" else f"{task}__"
+    return f"{prefix}{model_id.split('/')[-1]}__{technique}__n{n}__seed{seed}__pool{pool_seed}{tag}"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -167,7 +184,11 @@ def build_parser() -> argparse.ArgumentParser:
                    help="final run: use the arm frozen for this sampling instead of --sampling")
     p.add_argument("--effective-batch", type=int, default=None, help="default: min(16, ceil(N/20))")
     p.add_argument("--micro-batch", type=int, default=None)
-    p.add_argument("--max-length", type=int, default=1024)
+    p.add_argument("--task", choices=TASKS, default="banking77")
+    p.add_argument("--max-length", type=int, default=None, help="default: 1024 (banking77) or 8704 (billsum)")
+    p.add_argument("--grad-checkpointing", action=argparse.BooleanOptionalAction, default=None,
+                   help="default: on for billsum, off for banking77")
+    p.add_argument("--val-cap", type=int, default=1000, help="tuning validation rows: min(val_cap, N)")
     p.add_argument("--max-steps", type=int, default=None, help="smoke mode: stop after k steps")
     p.add_argument("--eval-limit", type=int, default=None, help="smoke mode: first k val items")
     p.add_argument("--eval-batch", type=int, default=64)
@@ -184,6 +205,7 @@ def config_from_args(argv: Optional[List[str]] = None) -> TrainConfig:
         model=a.model, technique=a.technique, n=a.n, seed=a.seed, pool_seed=a.pool_seed,
         sampling=a.sampling, epochs=a.epochs, lr=a.lr, s_min=a.s_min, tune=a.tune,
         replicate=a.replicate, frozen_arms=a.frozen_arms, arm_sampling=a.arm_sampling,
+        task=a.task, grad_checkpointing=a.grad_checkpointing, val_cap=a.val_cap,
         effective_batch=a.effective_batch, micro_batch=a.micro_batch, max_length=a.max_length,
         max_steps=a.max_steps, eval_limit=a.eval_limit, eval_batch=a.eval_batch,
         hub_repo=a.hub_repo, results=a.results, predictions_dir=a.predictions_dir,

@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
 from . import data, env, task_spec
-from . import tuning
+from . import billsum, tuning
 from .config import TrainConfig, config_from_args, lr_grid, run_id
 from .evaluate import evaluate, stop_token_ids
 from .hub import push_file, push_folder, safe_error
@@ -174,19 +174,45 @@ def train_loop(model, examples: List[Dict[str, Any]], cfg: TrainConfig, pad_id: 
     }
 
 
+def _mod(cfg: TrainConfig):
+    """Task data module: BANKING77 (`data`) or BillSum (`billsum`); both expose tokenize_example."""
+    return billsum if cfg.task == "billsum" else data
+
+
 def _prepare(cfg: TrainConfig):
-    """Data and tokenizer shared by every trial of a run."""
+    """Data and tokenizer shared by every trial of a run. `labels_all` holds the gold label
+    (classification) or the gold summary (BillSum) of each train row."""
     from transformers import AutoTokenizer
 
     spec = resolve(cfg.model)
     check_architecture(spec.hf_id)
-    texts, labels_all = data.load_train_split()
-    if len(texts) != data.N_TRAIN:
-        raise RuntimeError(f"expected {data.N_TRAIN} train rows, got {len(texts)}")
-    splits = data.make_splits(len(texts), cfg.pool_seed, sampling=cfg.sampling, labels=labels_all)
+    if cfg.task == "billsum":
+        texts, labels_all = billsum.load_train_split()
+        if len(texts) != billsum.N_TRAIN:
+            raise RuntimeError(f"expected {billsum.N_TRAIN} train rows, got {len(texts)}")
+        if cfg.sampling != "random":
+            raise ValueError("BillSum has no classes: only random pools exist")
+        splits = billsum.make_splits(cfg.pool_seed)
+    else:
+        texts, labels_all = data.load_train_split()
+        if len(texts) != data.N_TRAIN:
+            raise RuntimeError(f"expected {data.N_TRAIN} train rows, got {len(texts)}")
+        splits = data.make_splits(len(texts), cfg.pool_seed, sampling=cfg.sampling, labels=labels_all)
     tok = AutoTokenizer.from_pretrained(spec.hf_id)
     pad_id = tok.pad_token_id if tok.pad_token_id is not None else tok.eos_token_id
     return spec, texts, labels_all, splits, tok, pad_id
+
+
+def _tokenize(cfg: TrainConfig, tok, texts, targets, indices, *, train: bool):
+    """(examples, dropped_indices). Over-long items raise, except BillSum train items above the
+    cap, which are dropped (and returned for logging) only if under 0.1% of the pool."""
+    mod = _mod(cfg)
+    if train and cfg.task == "billsum":
+        full = {i: mod.tokenize_example(tok, texts[i], targets[i], 10 ** 9) for i in indices}
+        kept, dropped = mod.select_trainable(list(indices), {i: len(e["input_ids"]) for i, e in full.items()},
+                                             cfg.max_length)
+        return [full[i] for i in kept], dropped
+    return [mod.tokenize_example(tok, texts[i], targets[i], cfg.max_length) for i in indices], []
 
 
 def _build_model(spec: ModelSpec, cfg: TrainConfig):
@@ -198,6 +224,10 @@ def _build_model(spec: ModelSpec, cfg: TrainConfig):
     t0 = time.perf_counter()
     model = load_model(spec, cfg)
     check_lora_targets(model, spec.target_modules)  # fail before training, not silently
+    if cfg.use_grad_checkpointing:  # long BillSum inputs: recompute activations (protocol stage 4)
+        model.config.use_cache = False
+        model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
+        model.enable_input_require_grads()
     if cfg.technique == "qlora":
         model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=False)
     model = get_peft_model(model, LoraConfig(**peft_kwargs(
@@ -219,7 +249,7 @@ def _stop_ids(tok, labels_all: Sequence[str]) -> List[int]:
 
 
 def _arm_key(cfg: TrainConfig, hf_id: str) -> str:
-    return tuning.arm_key(task_spec.TASK, hf_id, cfg.technique, cfg.n, cfg.arm_sampling or cfg.sampling)
+    return tuning.arm_key(cfg.task, hf_id, cfg.technique, cfg.n, cfg.arm_sampling or cfg.sampling)
 
 
 def apply_frozen_arm(cfg: TrainConfig, hf_id: str):
@@ -242,43 +272,52 @@ def apply_frozen_arm(cfg: TrainConfig, hf_id: str):
 
 
 def run(cfg: TrainConfig, prep=None, selection: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """One final (or untuned) training run, evaluated on validation; appends one JSON line."""
+    """One final (or untuned) training run, evaluated on validation; appends one JSON line.
+
+    BANKING77: generation on the validation rows, accuracy. BillSum: validation loss only; summary
+    generation and ROUGE-L evaluation are NOT implemented here yet (record: generation_eval=False).
+    """
     spec, texts, labels_all, splits, tok, pad_id = prep or _prepare(cfg)
     cfg, arm_info = apply_frozen_arm(cfg, spec.hf_id)
-    rid = run_id(spec.hf_id, cfg.technique, cfg.n, cfg.seed, cfg.pool_seed, cfg.sampling)
+    is_sum = cfg.task == "billsum"
+    rid = run_id(spec.hf_id, cfg.technique, cfg.n, cfg.seed, cfg.pool_seed, cfg.sampling, cfg.task)
     print(f"[run] {rid} lr={cfg.lr:g} schedule={cfg.schedule_length()} steps={cfg.steps_to_train()} "
-          f"batch={cfg.batch} frozen={'yes' if arm_info else 'no'}", flush=True)
+          f"batch={cfg.batch} micro={cfg.micro} frozen={'yes' if arm_info else 'no'}", flush=True)
 
     pool = splits.pool(cfg.n)
     val = list(splits.val)[: cfg.eval_limit] if cfg.eval_limit else list(splits.val)
-    examples = [data.tokenize_example(tok, texts[i], labels_all[i], cfg.max_length) for i in pool]
-    val_examples = [data.tokenize_example(tok, texts[i], labels_all[i], cfg.max_length) for i in val]
+    examples, dropped = _tokenize(cfg, tok, texts, labels_all, pool, train=True)
+    val_examples, _ = _tokenize(cfg, tok, texts, labels_all, val, train=False)
     max_tokens = max(len(e["input_ids"]) for e in examples)
 
     model, load_seconds, n_trainable = _build_model(spec, cfg)
     stats = train_loop(model, examples, cfg, pad_id)
-    vloss = val_loss(model, val_examples, pad_id)
+    vloss = val_loss(model, val_examples, pad_id, batch_size=cfg.micro if is_sum else 32)
 
     ckpt = Path(cfg.checkpoint_dir) / rid
     model.save_pretrained(ckpt)
 
-    ev = evaluate(
-        model, tok, run_id=rid, system=spec.hf_id, technique=cfg.technique, n=cfg.n,
-        seed=cfg.seed, items=[(i, texts[i], labels_all[i]) for i in val],
-        stop_ids=_stop_ids(tok, labels_all), pad_id=pad_id, batch_size=cfg.eval_batch,
-        max_new_tokens=cfg.max_new_tokens,
-    )
+    ev = None
+    if not is_sum:
+        ev = evaluate(
+            model, tok, run_id=rid, system=spec.hf_id, technique=cfg.technique, n=cfg.n,
+            seed=cfg.seed, items=[(i, texts[i], labels_all[i]) for i in val],
+            stop_ids=_stop_ids(tok, labels_all), pad_id=pad_id, batch_size=cfg.eval_batch,
+            max_new_tokens=cfg.max_new_tokens,
+        )
     pred_path = Path(cfg.predictions_dir) / f"{rid}.jsonl"
-    pred_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(pred_path, "w", encoding="utf-8") as fh:
-        for r in ev["records"]:
-            r["extra"].update({"pool_seed": cfg.pool_seed, "pool_hash": data.indices_hash(pool)})
-            fh.write(json.dumps(r, ensure_ascii=False) + "\n")
+    if ev is not None:
+        pred_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(pred_path, "w", encoding="utf-8") as fh:
+            for r in ev["records"]:
+                r["extra"].update({"pool_seed": cfg.pool_seed, "pool_hash": data.indices_hash(pool)})
+                fh.write(json.dumps(r, ensure_ascii=False) + "\n")
 
     hub_pushed, hub_error = False, None
     if cfg.hub_repo:
         try:
-            shutil.copy(pred_path, ckpt / "predictions.jsonl")
+            if ev is not None:
+                shutil.copy(pred_path, ckpt / "predictions.jsonl")
             push_folder(cfg.hub_repo, str(ckpt), rid)
             hub_pushed = True
             shutil.rmtree(ckpt)  # only after a successful push
@@ -288,23 +327,27 @@ def run(cfg: TrainConfig, prep=None, selection: Optional[Dict[str, Any]] = None)
     else:
         print(f"[hub] no --hub-repo: adapter stays at {ckpt} (disk is ephemeral!)", flush=True)
 
+    summ = billsum.split_summary(splits, cfg.n) if is_sum else data.split_summary(splits, cfg.n)
     record = {
         "status": "ok", "run_id": rid, "model": spec.hf_id, "model_key": spec.key,
-        "technique": cfg.technique, "n": cfg.n, "seed": cfg.seed, "task": task_spec.TASK,
+        "technique": cfg.technique, "n": cfg.n, "seed": cfg.seed, "task": cfg.task,
         "replicate": cfg.replicate, "epochs": cfg.epochs, "lr": cfg.lr,
         "effective_batch": cfg.batch, "micro_batch": cfg.micro, "s_min": cfg.s_min,
+        "grad_checkpointing": cfg.use_grad_checkpointing,
         "schedule_total": cfg.schedule_length(), "stop_step": cfg.stop_step,
         "max_length": cfg.max_length, "frozen_arm": arm_info,
         "selected_by_validation": selection is not None or arm_info is not None, "selection": selection,
-        "longest_example_tokens": max_tokens, "target_modules": list(spec.target_modules),
+        "longest_example_tokens": max_tokens, "dropped_over_cap": dropped, "target_modules": list(spec.target_modules),
         "lora_r": cfg.lora_r, "lora_alpha": cfg.lora_alpha, "lora_dropout": cfg.lora_dropout,
         "max_steps": cfg.max_steps, "trainable_params": n_trainable,
         "load_seconds": load_seconds, "val_loss": vloss,
         "peak_mem_gb": stats["peak_mem_bytes"] / 1e9, **stats,
-        "accuracy": ev["accuracy"], "n_eval": ev["n_eval"], "n_unparseable": ev["n_unparseable"],
-        "eval_seconds": ev["eval_seconds"], "eval_split": "validation",
-        "prompt": "task_spec (system with 77 labels + 'Input: q\\nLabel:')",
-        **data.split_summary(splits, cfg.n),
+        "accuracy": ev["accuracy"] if ev else None, "n_eval": ev["n_eval"] if ev else len(val),
+        "n_unparseable": ev["n_unparseable"] if ev else None,
+        "eval_seconds": ev["eval_seconds"] if ev else None, "eval_split": "validation",
+        "generation_eval": ev is not None,
+        "prompt": ("billsum task_spec" if is_sum else "task_spec (system with 77 labels + 'Input: q\\nLabel:')"),
+        **summ,
         **env.gpu_info(), "libs": env.lib_versions(), "git_commit": env.git_commit(),
         "timestamp_utc": env.utc_now(), "hub_repo": cfg.hub_repo, "hub_pushed": hub_pushed,
         "hub_error": hub_error,
@@ -315,8 +358,8 @@ def run(cfg: TrainConfig, prep=None, selection: Optional[Dict[str, Any]] = None)
             push_file(cfg.hub_repo, cfg.results, f"logs/{Path(cfg.results).name}")
         except Exception as e:
             print(f"[hub] log upload failed: {safe_error(e)}", flush=True)
-    print(f"[done] {rid}: train {record['train_seconds']:.1f}s, peak {record['peak_mem_gb']:.1f} GB, "
-          f"acc {record['accuracy']:.4f}", flush=True)
+    acc = f"acc {record['accuracy']:.4f}" if ev else f"val_loss {vloss:.4f}"
+    print(f"[done] {rid}: train {record['train_seconds']:.1f}s, peak {record['peak_mem_gb']:.1f} GB, {acc}", flush=True)
     del model
     _release_gpu()
     return record
@@ -341,35 +384,41 @@ def tune(cfg: TrainConfig) -> Dict[str, Any]:
     if key in tuning.load_arms(cfg.frozen_arms):
         raise tuning.FrozenArmConflict(f"{key} is already frozen in {cfg.frozen_arms}")
 
+    is_sum = cfg.task == "billsum"
+    metric = "loss" if is_sum else "accuracy"  # summarisation: validation loss only (L-10, protocol)
     pool = splits.pool(cfg.n)
-    val = list(splits.val)[: tuning.val_size(cfg.n)]
+    val = list(splits.val)[: tuning.val_size(cfg.n, cfg.val_cap)]
     if cfg.eval_limit:
         val = val[: cfg.eval_limit]  # smoke mode only
-    examples = [data.tokenize_example(tok, texts[i], labels_all[i], cfg.max_length) for i in pool]
-    val_examples = [data.tokenize_example(tok, texts[i], labels_all[i], cfg.max_length) for i in val]
-    items = [(i, texts[i], labels_all[i]) for i in val]
-    stop_ids = _stop_ids(tok, labels_all)
+    examples, dropped = _tokenize(cfg, tok, texts, labels_all, pool, train=True)
+    val_examples, _ = _tokenize(cfg, tok, texts, labels_all, val, train=False)
+    items = [] if is_sum else [(i, texts[i], labels_all[i]) for i in val]
+    stop_ids = [] if is_sum else _stop_ids(tok, labels_all)
+    vbatch = cfg.micro if is_sum else 32
     sched = cfg.max_steps or tuning.schedule_steps(cfg.n, cfg.batch, cfg.s_min)
     cks = tuning.checkpoint_steps(sched)
     grid = lr_grid(cfg.technique)
-    rid = run_id(spec.hf_id, cfg.technique, cfg.n, cfg.seed, cfg.pool_seed, cfg.sampling) + "__tune"
-    print(f"[tune] {rid} grid={list(grid)} schedule={sched} checkpoints={cks} val={len(val)}", flush=True)
+    rid = run_id(spec.hf_id, cfg.technique, cfg.n, cfg.seed, cfg.pool_seed, cfg.sampling, cfg.task) + "__tune"
+    print(f"[tune] {rid} metric={metric} grid={list(grid)} schedule={sched} checkpoints={cks} val={len(val)}", flush=True)
 
     trials: List[Dict[str, Any]] = []
     for lr in grid:
         c = dataclasses.replace(cfg, lr=lr, schedule_total=sched, stop_step=None)
         model, load_s, _ = _build_model(spec, c)
-        stopper, log = tuning.EarlyStopper("accuracy"), []
+        stopper, log = tuning.EarlyStopper(metric), []
 
         def on_checkpoint(step: int) -> bool:
-            ev = evaluate(model, tok, run_id=rid, system=spec.hf_id, technique=c.technique, n=c.n,
-                          seed=c.seed, items=items, stop_ids=stop_ids, pad_id=pad_id,
-                          batch_size=c.eval_batch, max_new_tokens=c.max_new_tokens)
-            ck = {"step": step, "epoch": step / c.steps_per_epoch(), "accuracy": ev["accuracy"],
-                  "val_loss": val_loss(model, val_examples, pad_id), "n_unparseable": ev["n_unparseable"]}
+            ck = {"step": step, "epoch": step / c.steps_per_epoch(), "accuracy": None, "n_unparseable": None,
+                  "val_loss": val_loss(model, val_examples, pad_id, batch_size=vbatch)}
+            if not is_sum:
+                ev = evaluate(model, tok, run_id=rid, system=spec.hf_id, technique=c.technique, n=c.n,
+                              seed=c.seed, items=items, stop_ids=stop_ids, pad_id=pad_id,
+                              batch_size=c.eval_batch, max_new_tokens=c.max_new_tokens)
+                ck.update(accuracy=ev["accuracy"], n_unparseable=ev["n_unparseable"])
             log.append(ck)
             stop = stopper.update(ck)
-            print(f"[tune] lr={lr:g} step={step} acc={ck['accuracy']:.4f} loss={ck['val_loss']:.4f}"
+            shown = f"acc={ck['accuracy']:.4f} " if ck["accuracy"] is not None else ""
+            print(f"[tune] lr={lr:g} step={step} {shown}loss={ck['val_loss']:.4f}"
                   f"{' -> stop' if stop else ''}", flush=True)
             return stop
 
@@ -386,11 +435,12 @@ def tune(cfg: TrainConfig) -> Dict[str, Any]:
         del model, on_checkpoint  # drop every reference before the next trial loads a model
         _release_gpu()
 
-    sel = tuning.select(trials, grid, "accuracy", cfg.steps_per_epoch())
+    sel = tuning.select(trials, grid, metric, cfg.steps_per_epoch())
     entry = {
         **sel, "lr_grid": list(grid), "effective_batch": cfg.batch, "s_min": cfg.s_min,
         "tuning_replicate": tuning.TUNING_REPLICATE, "pool_seed": cfg.pool_seed, "train_seed": cfg.seed,
         "pool_hash": data.indices_hash(pool), "val_size": len(val), "val_hash": data.indices_hash(val),
+        "task": cfg.task, "dropped_over_cap": dropped, "max_length": cfg.max_length,
         "git_commit": env.git_commit(), "timestamp_utc": env.utc_now(),
     }
     sha = tuning.freeze_arm(cfg.frozen_arms, key, entry)
@@ -399,14 +449,15 @@ def tune(cfg: TrainConfig) -> Dict[str, Any]:
     record = {
         "status": "tuned", "run_id": rid, "model": spec.hf_id, "model_key": spec.key,
         "technique": cfg.technique, "n": cfg.n, "seed": cfg.seed, "pool_seed": cfg.pool_seed,
-        "sampling": cfg.sampling, "task": task_spec.TASK, "replicate": cfg.replicate,
+        "sampling": cfg.sampling, "task": cfg.task, "replicate": cfg.replicate,
         "arm_key": key, "frozen_arms_sha256": sha, "selection": entry, "trials": trials,
         "tuning_gpu_seconds": gpu_seconds, **env.gpu_info(), "libs": env.lib_versions(),
     }
     _append(cfg.results, record)
+    score = (f"val_acc={sel['val_accuracy']:.4f}" if sel["val_accuracy"] is not None
+             else f"val_loss={sel['val_loss']:.4f}")
     print(f"[tune] frozen {key}: lr={sel['lr']:g} stop_step={sel['stop_step']} "
-          f"(epochs* {sel['epochs_star']:.2f}) val_acc={sel['val_accuracy']:.4f} edge={sel['at_grid_edge']}",
-          flush=True)
+          f"(epochs* {sel['epochs_star']:.2f}) {score} edge={sel['at_grid_edge']}", flush=True)
     return record
 
 
