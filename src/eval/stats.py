@@ -151,7 +151,7 @@ def hierarchical_paired_bootstrap(
     replacement separately for each system (seeds are not paired across
     systems; a system with one run keeps it). The default statistic is the
     mean over seeds and items. p_value is the two-sided bootstrap
-    approximation 2 * min(P(d <= 0), P(d >= 0)), capped at 1.
+    approximation 2 * (1 + min(#{d <= 0}, #{d >= 0})) / (B + 1), capped at 1 (never 0).
     """
     a, b = _as_seed_item(scores_a), _as_seed_item(scores_b)
     if a.shape[1] != b.shape[1]:
@@ -186,7 +186,7 @@ def hierarchical_paired_bootstrap(
             diffs[i] = stat(a[sa][:, items]) - stat(b[sb][:, items])
 
     lo, hi = percentile_ci(diffs, ci_level)
-    p = float(min(1.0, 2 * min(np.mean(diffs <= 0), np.mean(diffs >= 0))))
+    p = float(min(1.0, 2 * (1 + min(np.sum(diffs <= 0), np.sum(diffs >= 0))) / (n_resamples + 1)))
     return BootstrapResult(estimate, lo, hi, ci_level, p, n_resamples, diffs)
 
 

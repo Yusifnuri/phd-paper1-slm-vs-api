@@ -2,7 +2,7 @@
 
 Protocol (docs/foundation/EXPERIMENT_PROTOCOL.md section 4, L-05, L-17, L-18):
   * Tuning runs on replicate 0 only (pool_seed 0, train seed 100), which is never analysed.
-  * One trial per learning rate in the technique's grid (4 trials). Each trial is ONE cosine
+  * One trial per learning rate in the technique's grid (5 trials, L-25). Each trial is ONE cosine
     schedule to E_max epochs (N < 3,000: 10; N >= 3,000: 5), floored at S_min optimiser steps.
   * Validation on val(N) = the first min(1,000, N) rows of the fixed validation carve-out, at
     five evenly spaced checkpoints; early stopping with patience 2 inside the run (this replaces
@@ -16,6 +16,7 @@ Protocol (docs/foundation/EXPERIMENT_PROTOCOL.md section 4, L-05, L-17, L-18):
 
 from __future__ import annotations
 
+import fcntl
 import hashlib
 import json
 import math
@@ -160,21 +161,24 @@ def freeze_arm(path: str, key: str, entry: Dict[str, Any]) -> str:
 
     Writes atomically (temp file + rename) and returns the sha256 of the new file.
     """
-    arms = load_arms(path)
-    if key in arms:
-        if _canonical(arms[key]) != _canonical(entry):
-            raise FrozenArmConflict(
-                f"{key} is already frozen in {path} with a different configuration; "
-                "frozen arms are never re-selected (protocol section 4)")
-        return file_hash(path)
-    arms[key] = entry
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
-    fd, tmp = tempfile.mkstemp(dir=str(p.parent), prefix=".frozen_arms.")
-    with os.fdopen(fd, "w", encoding="utf-8") as fh:
-        fh.write(_canonical(arms) + "\n")
-    os.replace(tmp, p)
-    return file_hash(path)
+    # Exclusive lock around read-modify-write so concurrent tuning jobs cannot lose each other's arms.
+    with open(str(p) + ".lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        arms = load_arms(path)
+        if key in arms:
+            if _canonical(arms[key]) != _canonical(entry):
+                raise FrozenArmConflict(
+                    f"{key} is already frozen in {path} with a different configuration; "
+                    "frozen arms are never re-selected (protocol section 4)")
+            return file_hash(path)
+        arms[key] = entry
+        fd, tmp = tempfile.mkstemp(dir=str(p.parent), prefix=".frozen_arms.")
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(_canonical(arms) + "\n")
+        os.replace(tmp, p)
+        return file_hash(path)
 
 
 def load_arm(path: str, key: str) -> Dict[str, Any]:

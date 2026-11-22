@@ -120,6 +120,8 @@ FAMILY_SIZE = 6
 def holm_adjust(p_values: Sequence[float]) -> np.ndarray:
     """Holm step-down adjusted p-values (monotone, capped at 1)."""
     p = np.asarray(p_values, dtype=float)
+    if not np.all(np.isfinite(p)) or np.any((p < 0) | (p > 1)):
+        raise ValueError(f"p-values must be finite and in [0, 1], got {p.tolist()}")
     m = p.size
     order = np.argsort(p, kind="stable")
     adj = np.empty(m)
@@ -335,11 +337,12 @@ def classify_contrast(result: CrossedResult, p_holm: float, margin: float, mdg: 
 
 def decide_family(results: Dict[str, CrossedResult], margins: Dict[str, float],
                   mdgs: Optional[Dict[str, float]] = None, alpha: float = 0.05,
-                  no_equality: Sequence[str] = ()) -> Dict[str, Dict[str, object]]:
+                  no_equality: Sequence[str] = (),
+                  expected_size: int = FAMILY_SIZE) -> Dict[str, Dict[str, object]]:
     """Holm over the 6 contrasts, then classify each. `margins[name]`: 0.03 (accuracy, BANKING77) or the
-    ROUGE-L margin; contrast names in `no_equality` (BillSum) never receive the descriptive 'practically
+    ROUGE-L margin; `expected_size=4` gives the pre-registered sensitivity family without N=200 (L-15); contrast names in `no_equality` (BillSum) never receive the descriptive 'practically
     equal' flag."""
-    holm = holm_family({k: r.p for k, r in results.items()}, alpha)
+    holm = holm_family({k: r.p for k, r in results.items()}, alpha, expected_size)
     return {k: dict(classify_contrast(r, holm[k]["p_holm"], margins[k], None if mdgs is None else mdgs.get(k),
                                       alpha, k not in no_equality),
                     p=r.p, df=r.df, ci99_2=r.ci(0.992))

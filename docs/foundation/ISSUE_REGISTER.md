@@ -60,3 +60,5 @@ Remaining OPEN, not fixable by text: FT arm unproven (I-01/I-02), power code out
 - 2026-11-22: H4 closed; Spiegelhalter full text read (`docs/research/spiegelhalter-2026-notes.md`, L-21). I-10 stays HIGH pending a second literature check, but no overlap with the commercial-API, N>200 or summarisation parts. I-28: the tuning-charged break-even is confirmed as not distinguishing.
 
 - 2026-11-22: I-24 reproducibility part closed for statistics: `analysis/power_sim.py`, `power_sim2.py`, `breakeven.py` and A4's reference outputs copied into the repository; `power_sim2.py typeI` rerun on the Mac gave output identical to the saved `sim2_typeI.json` (24 cells, max difference 0.0) and `breakeven.py` reproduces the break-even table of `STATISTICAL_ANALYSIS_PLAN.md`. The `mdg` and BillSum simulations were not rerun. The request-count part is closed by `count_requests.py` (see I-29); the 06b C5 claim of a 60,204 gap was my arithmetic error and is retracted.
+
+- 2026-11-22: I-09 and I-18 cannot progress until funding exists (L-32). I-15: GPU cost has no dollar basis beyond the imputed band (H3 answered).

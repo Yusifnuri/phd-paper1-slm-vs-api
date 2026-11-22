@@ -248,3 +248,12 @@ def test_gate_report_g2_g3_against_knn_on_matched_replicates():
     assert rep["G3"]["pass"] is False and rep["overall"] == "FAIL"
     knn[2]["accuracy"] = knn[3]["accuracy"] = 0.80
     assert m.gate_report(ft + knn, arms, HF)["overall"] == "PASS"
+
+
+def test_freeze_arm_concurrent_writers_keep_all_arms(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+    from src.train.tuning import freeze_arm, load_arms
+    path = str(tmp_path / "frozen_arms.json")
+    with ThreadPoolExecutor(8) as ex:
+        list(ex.map(lambda i: freeze_arm(path, f"k{i}", {"lr": i}), range(16)))
+    assert len(load_arms(path)) == 16

@@ -20,3 +20,4 @@ wandb/
 .vscode/
 anaconda_projects/
 runs/
+frozen_arms.json.lock

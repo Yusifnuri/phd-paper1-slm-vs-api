@@ -257,3 +257,20 @@ def test_unadjusted_significance_not_enough_under_holm():
     res["c5"] = _res(0.027, 0.01)
     out = inf.decide_family(res, {k: 0.03 for k in res})
     assert out["c5"]["p"] < 0.05 and out["c5"]["p_holm"] >= 0.05 and out["c5"]["label"] == "inconclusive"
+
+
+def test_holm_rejects_nan_and_out_of_range():
+    import pytest
+    from analysis.inference import holm_adjust
+    with pytest.raises(ValueError):
+        holm_adjust([0.001, 0.02, float("nan")])
+    with pytest.raises(ValueError):
+        holm_adjust([0.5, 1.5])
+
+
+def test_decide_family_four_contrast_sensitivity():
+    import numpy as np
+    from analysis.inference import crossed_contrast, decide_family
+    r = crossed_contrast(np.random.default_rng(0).normal(size=(50, 5)))
+    out = decide_family({f"k{i}": r for i in range(4)}, {f"k{i}": 0.03 for i in range(4)}, expected_size=4)
+    assert len(out) == 4
