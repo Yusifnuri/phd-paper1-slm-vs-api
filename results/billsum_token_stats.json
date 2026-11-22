@@ -1,0 +1,207 @@
+{
+  "dataset": "FiscalNote/billsum",
+  "split": "train",
+  "n_bills": 18949,
+  "chars": {
+    "text": {
+      "mean": 10272.5,
+      "min": 5001,
+      "max": 19998,
+      "percentiles": {
+        "5": 5300,
+        "25": 6733,
+        "50": 9283,
+        "75": 13204,
+        "90": 16775,
+        "95": 18290,
+        "99": 19582,
+        "99.9": 19967
+      }
+    },
+    "summary": {
+      "mean": 1185.6,
+      "min": 52,
+      "max": 4995,
+      "percentiles": {
+        "5": 271,
+        "25": 613,
+        "50": 1042,
+        "75": 1585,
+        "90": 2151,
+        "95": 2614,
+        "99": 3809,
+        "99.9": 4841
+      }
+    }
+  },
+  "rule": "max_length = ceil((max train example tokens + margin) / round_to) * round_to; test items are never truncated; drop train items above the cap only if under 0.1%",
+  "margin": 256,
+  "round_to": 512,
+  "tokenizers": {
+    "qwen3-4b": {
+      "hf_id": "Qwen/Qwen3-4B-Instruct-2507",
+      "doc_tokens": {
+        "mean": 2104.1,
+        "min": 436,
+        "max": 7393,
+        "percentiles": {
+          "5": 1088,
+          "25": 1405,
+          "50": 1911,
+          "75": 2675,
+          "90": 3381,
+          "95": 3685,
+          "99": 4201,
+          "99.9": 4947
+        }
+      },
+      "summary_tokens": {
+        "mean": 228.2,
+        "min": 9,
+        "max": 1147,
+        "percentiles": {
+          "5": 53,
+          "25": 120,
+          "50": 201,
+          "75": 301,
+          "90": 412,
+          "95": 508,
+          "99": 737,
+          "99.9": 957
+        }
+      },
+      "example_tokens": {
+        "mean": 2386.4,
+        "min": 588,
+        "max": 7970,
+        "percentiles": {
+          "5": 1288,
+          "25": 1643,
+          "50": 2189,
+          "75": 2993,
+          "90": 3730,
+          "95": 4073,
+          "99": 4696,
+          "99.9": 5567
+        }
+      },
+      "share_examples_above_cap": {
+        "4096": {
+          "count": 900,
+          "share": 0.04749591007441026
+        },
+        "6144": {
+          "count": 8,
+          "share": 0.0004221858673280912
+        },
+        "8192": {
+          "count": 0,
+          "share": 0.0
+        },
+        "9216": {
+          "count": 0,
+          "share": 0.0
+        },
+        "10240": {
+          "count": 0,
+          "share": 0.0
+        },
+        "12288": {
+          "count": 0,
+          "share": 0.0
+        },
+        "16384": {
+          "count": 0,
+          "share": 0.0
+        }
+      },
+      "summary_tokens_above_1024": 6,
+      "longest_example_train_index": 59,
+      "proposed_max_length": 8704,
+      "dropped_at_proposed_cap": 0
+    },
+    "phi4-mini": {
+      "hf_id": "microsoft/Phi-4-mini-instruct",
+      "doc_tokens": {
+        "mean": 2054.0,
+        "min": 427,
+        "max": 7392,
+        "percentiles": {
+          "5": 1067,
+          "25": 1370,
+          "50": 1866,
+          "75": 2611,
+          "90": 3309,
+          "95": 3603,
+          "99": 4061,
+          "99.9": 4644
+        }
+      },
+      "summary_tokens": {
+        "mean": 223.1,
+        "min": 9,
+        "max": 1066,
+        "percentiles": {
+          "5": 51,
+          "25": 116,
+          "50": 196,
+          "75": 295,
+          "90": 404,
+          "95": 498,
+          "99": 722,
+          "99.9": 944
+        }
+      },
+      "example_tokens": {
+        "mean": 2324.2,
+        "min": 559,
+        "max": 7962,
+        "percentiles": {
+          "5": 1253,
+          "25": 1595,
+          "50": 2128,
+          "75": 2920,
+          "90": 3644,
+          "95": 3970,
+          "99": 4538,
+          "99.9": 5231
+        }
+      },
+      "share_examples_above_cap": {
+        "4096": {
+          "count": 683,
+          "share": 0.03604411842313578
+        },
+        "6144": {
+          "count": 3,
+          "share": 0.0001583197002480342
+        },
+        "8192": {
+          "count": 0,
+          "share": 0.0
+        },
+        "9216": {
+          "count": 0,
+          "share": 0.0
+        },
+        "10240": {
+          "count": 0,
+          "share": 0.0
+        },
+        "12288": {
+          "count": 0,
+          "share": 0.0
+        },
+        "16384": {
+          "count": 0,
+          "share": 0.0
+        }
+      },
+      "summary_tokens_above_1024": 2,
+      "longest_example_train_index": 59,
+      "proposed_max_length": 8704,
+      "dropped_at_proposed_cap": 0
+    }
+  },
+  "proposed_max_length_all_models": 8704
+}

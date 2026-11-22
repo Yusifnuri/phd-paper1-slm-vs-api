@@ -208,9 +208,9 @@ SUMMARISATION = register_template(
             "Write only the summary, as plain prose, with no heading or preamble."
         ),
         parse=parse_free_text,
-        # BillSum train summaries reach 4,995 chars (~1.25k tokens at 4 chars/token,
-        # ~1.6k with Haiku's ~1.3x tokenizer), so 2048 avoids truncating the longest.
-        max_output_tokens=2048,
+        # Protocol section 5: output cap 1,024 for every arm. 6 of 18,949 train gold summaries
+        # exceed 1,024 Qwen tokens (results/billsum_token_stats.json), so those are truncated.
+        max_output_tokens=1024,
         example_format="Document:\n{input}\n\nSummary:\n{output}",
         query_format="Document:\n{input}\n\nSummary:",
         separator="\n\n---\n\n",

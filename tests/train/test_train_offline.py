@@ -82,6 +82,8 @@ def test_test_split_never_loaded(monkeypatch):
 
 def test_no_test_split_reference_in_sources():
     for f in Path(data.__file__).parent.glob("*.py"):
+        if f.name == "billsum.py":  # its single guarded test reader is checked in test_billsum.py
+            continue
         src = f.read_text()
         assert 'split="test"' not in src and "split='test'" not in src and '"test"' not in src, f
 
