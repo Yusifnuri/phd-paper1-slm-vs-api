@@ -49,7 +49,7 @@ TASKS: Dict[str, IclTask] = {
     "banking77": IclTask(
         name="banking77", template="classification",
         context={"task_description": prompts.BANKING77_DESCRIPTION, "labels": list(task_spec.BANKING77_LABELS)},
-        ks=(4, 8, 16, 32), max_new_tokens=task_spec.MAX_NEW_TOKENS, metric="accuracy",
+        ks=(4, 8, 16, 32, 64), max_new_tokens=task_spec.MAX_NEW_TOKENS, metric="accuracy",
         parse=_parse_banking77),
     # BillSum: k <= 3 (protocol section 1). Output cap 1,024 for every arm (protocol section 5;
     # the API template's 2,048 is slated to change). No BillSum loader or ROUGE selection is

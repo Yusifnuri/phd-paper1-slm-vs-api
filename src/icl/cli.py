@@ -7,7 +7,7 @@
     python scripts/run_icl.py --model qwen3-4b --technique zero_shot --replicate 1 --frozen-arms ...
 
 Mirrors src/baselines/knn.py. `--tune` (replicate 0 only) scores each k of the task's grid
-(BANKING77 {4, 8, 16, 32}, 4 values) on val(N) = the first min(1000, N) validation rows, picks
+(BANKING77 {4, 8, 16, 32, 64}, 5 values, L-25) on val(N) = the first min(1000, N) validation rows, picks
 the best (ties: smaller k) and freezes it in frozen_arms.json under
     arm_key(task, <hf model id>, <technique>, N, sampling).
 Finals (replicate >= 1) read the frozen arm and score the full 1,000-row validation carve-out

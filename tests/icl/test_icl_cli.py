@@ -25,10 +25,10 @@ def test_tune_then_final_retrieved(tmp_path):
              "--replicate", "0", "--tune")
     key = tuning.arm_key("banking77", HF, "icl_retrieved", 200, "stratified")
     assert t["status"] == "tuned" and t["arm_key"] == key
-    assert t["selection"]["k"] == 8 and t["selection"]["ks"] == [4, 8, 16, 32] and t["selection"]["val_size"] == 200
+    assert t["selection"]["k"] == 8 and t["selection"]["ks"] == [4, 8, 16, 32, 64] and t["selection"]["val_size"] == 200
     assert t["selection"]["at_grid_edge"] is None
-    assert set(t["selection"]["per_k"]) == {"4", "8", "16", "32"} and t["selection"]["per_k"]["4"] < 0.5
-    assert len(g.calls) == 4 and all(len(c[0]) == 200 and c[2] is None for c in g.calls)  # 4 k values, free decoding
+    assert set(t["selection"]["per_k"]) == {"4", "8", "16", "32", "64"} and t["selection"]["per_k"]["4"] < 0.5
+    assert len(g.calls) == 5 and all(len(c[0]) == 200 and c[2] is None for c in g.calls)  # 5 k values, free decoding
     assert tuning.load_arm(str(tmp_path / "arms.json"), key)["k"] == 8
     assert t["prompt_tokens"] > 0 and "generate_seconds" in t
 

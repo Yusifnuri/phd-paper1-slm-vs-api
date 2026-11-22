@@ -281,6 +281,8 @@ Gate report (script `run_stage2.py`): G1 pass, G2 pass (FT minus kNN +5.1 points
 
 ## 17. Not yet decided: `[TO DECIDE BEFORE FREEZE]`
 
+**Update 2026-11-22: the decisions for these items are written in `docs/foundation/PREREG_DECISIONS.md` (taken by the assistant under the researcher's delegation; the researcher can overrule any of them; D-13, D-16, D-18, D-19, D-21 stay with the researcher). The table below is the original list of open questions.**
+
 All items need a written decision before the protocol tag unless marked "arms tag". Owner is the person who must decide; "researcher" is the PhD student.
 
 | ID | Item | Why open | Owner | Needed by |
