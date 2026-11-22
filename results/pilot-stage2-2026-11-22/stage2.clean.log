@@ -1,0 +1,419 @@
+14 steps to run
+
+=== [1/14] knn tune banking77|knn:BAAI/bge-small-en-v1.5@5c38ec7c405ec4b44b94cc5a9bb96e735b38267a|knn|n200|stratified ===
+/home/jovyan/venv-paper1/bin/python -m src.baselines.knn --n 200 --sampling stratified --replicate 0 --frozen-arms /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/frozen_arms.json --results /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/results.jsonl --predictions-dir /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/predictions --tune
+[knn] tuned banking77|knn:BAAI/bge-small-en-v1.5@5c38ec7c405ec4b44b94cc5a9bb96e735b38267a|knn|n200|stratified k=1 val_acc=0.6700
+13 steps to run
+
+=== [1/13] knn tune banking77|knn:BAAI/bge-small-en-v1.5@5c38ec7c405ec4b44b94cc5a9bb96e735b38267a|knn|n1000|random ===
+/home/jovyan/venv-paper1/bin/python -m src.baselines.knn --n 1000 --sampling random --replicate 0 --frozen-arms /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/frozen_arms.json --results /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/results.jsonl --predictions-dir /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/predictions --tune
+[knn] tuned banking77|knn:BAAI/bge-small-en-v1.5@5c38ec7c405ec4b44b94cc5a9bb96e735b38267a|knn|n1000|random k=5 val_acc=0.8330
+12 steps to run
+
+=== [1/12] knn final n=200 stratified r=1 ===
+/home/jovyan/venv-paper1/bin/python -m src.baselines.knn --n 200 --sampling stratified --replicate 1 --frozen-arms /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/frozen_arms.json --results /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/results.jsonl --predictions-dir /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/predictions
+[knn] ok banking77|knn:BAAI/bge-small-en-v1.5@5c38ec7c405ec4b44b94cc5a9bb96e735b38267a|knn|n200|stratified k=1 acc=0.7300
+
+=== [2/12] knn final n=200 stratified r=2 ===
+/home/jovyan/venv-paper1/bin/python -m src.baselines.knn --n 200 --sampling stratified --replicate 2 --frozen-arms /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/frozen_arms.json --results /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/results.jsonl --predictions-dir /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/predictions
+[knn] ok banking77|knn:BAAI/bge-small-en-v1.5@5c38ec7c405ec4b44b94cc5a9bb96e735b38267a|knn|n200|stratified k=1 acc=0.7130
+
+=== [3/12] knn final n=1000 random r=1 ===
+/home/jovyan/venv-paper1/bin/python -m src.baselines.knn --n 1000 --sampling random --replicate 1 --frozen-arms /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/frozen_arms.json --results /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/results.jsonl --predictions-dir /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/predictions
+[knn] ok banking77|knn:BAAI/bge-small-en-v1.5@5c38ec7c405ec4b44b94cc5a9bb96e735b38267a|knn|n1000|random k=5 acc=0.8400
+
+=== [4/12] knn final n=1000 random r=2 ===
+/home/jovyan/venv-paper1/bin/python -m src.baselines.knn --n 1000 --sampling random --replicate 2 --frozen-arms /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/frozen_arms.json --results /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/results.jsonl --predictions-dir /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/predictions
+[knn] ok banking77|knn:BAAI/bge-small-en-v1.5@5c38ec7c405ec4b44b94cc5a9bb96e735b38267a|knn|n1000|random k=5 acc=0.8440
+
+=== [5/12] knn final n=200 random r=1 ===
+/home/jovyan/venv-paper1/bin/python -m src.baselines.knn --n 200 --sampling random --replicate 1 --frozen-arms /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/frozen_arms.json --results /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/results.jsonl --predictions-dir /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/predictions --arm-sampling stratified
+[knn] ok banking77|knn:BAAI/bge-small-en-v1.5@5c38ec7c405ec4b44b94cc5a9bb96e735b38267a|knn|n200|stratified k=1 acc=0.6810
+
+=== [6/12] tune banking77|Qwen/Qwen3-4B-Instruct-2507|lora|n200|stratified ===
+/home/jovyan/venv-paper1/bin/python -m src.train.train --model qwen3-4b --technique lora --n 200 --sampling stratified --replicate 0 --frozen-arms /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/frozen_arms.json --results /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/results.jsonl --predictions-dir /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/predictions --hub-repo yusifnuri/paper1-pilot-adapters --tune
+[tune] Qwen3-4B-Instruct-2507__lora__n200__seed100__pool0__strat__tune grid=[5e-05, 0.0001, 0.0002, 0.0004] schedule=200 checkpoints=[40, 80, 120, 160, 200] val=200
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+[tune] lr=5e-05 step=40 acc=0.6600 loss=0.2095
+[tune] lr=5e-05 step=80 acc=0.7300 loss=0.1823
+[tune] lr=5e-05 step=120 acc=0.7050 loss=0.2334
+[tune] lr=5e-05 step=160 acc=0.7050 loss=0.2558 -> stop
+[tune] lr=0.0001 step=40 acc=0.7350 loss=0.1703
+[tune] lr=0.0001 step=80 acc=0.7350 loss=0.2096
+[tune] lr=0.0001 step=120 acc=0.7350 loss=0.2550 -> stop
+[tune] lr=0.0002 step=40 acc=0.7300 loss=0.1654
+[tune] lr=0.0002 step=80 acc=0.7250 loss=0.1990
+[tune] lr=0.0002 step=120 acc=0.7550 loss=0.2709
+[tune] lr=0.0002 step=160 acc=0.7600 loss=0.3085
+[tune] lr=0.0002 step=200 acc=0.7550 loss=0.3126
+[tune] lr=0.0004 step=40 acc=0.7250 loss=0.1951
+[tune] lr=0.0004 step=80 acc=0.7650 loss=0.2073
+[tune] lr=0.0004 step=120 acc=0.7600 loss=0.2622
+[tune] lr=0.0004 step=160 acc=0.7850 loss=0.3143
+[tune] lr=0.0004 step=200 acc=0.7850 loss=0.3215
+[tune] frozen banking77|Qwen/Qwen3-4B-Instruct-2507|lora|n200|stratified: lr=0.0004 stop_step=160 (epochs* 8.00) val_acc=0.7850 edge=high
+6 steps to run
+
+=== [1/6] tune banking77|Qwen/Qwen3-4B-Instruct-2507|lora|n1000|random ===
+/home/jovyan/venv-paper1/bin/python -m src.train.train --model qwen3-4b --technique lora --n 1000 --sampling random --replicate 0 --frozen-arms /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/frozen_arms.json --results /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/results.jsonl --predictions-dir /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/predictions --hub-repo yusifnuri/paper1-pilot-adapters --tune
+[tune] Qwen3-4B-Instruct-2507__lora__n1000__seed100__pool0__tune grid=[5e-05, 0.0001, 0.0002, 0.0004] schedule=630 checkpoints=[126, 252, 378, 504, 630] val=1000
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+[tune] lr=5e-05 step=126 acc=0.7950 loss=0.1240
+[tune] lr=5e-05 step=252 acc=0.8140 loss=0.1225
+[tune] lr=5e-05 step=378 acc=0.8280 loss=0.1575
+[tune] lr=5e-05 step=504 acc=0.8310 loss=0.1758
+[tune] lr=5e-05 step=630 acc=0.8310 loss=0.1801
+[tune] lr=0.0001 step=126 acc=0.8020 loss=0.1161
+[tune] lr=0.0001 step=252 acc=0.8340 loss=0.1222
+[tune] lr=0.0001 step=378 acc=0.8480 loss=0.1572
+[tune] lr=0.0001 step=504 acc=0.8490 loss=0.1773
+[tune] lr=0.0001 step=630 acc=0.8480 loss=0.1816
+[tune] lr=0.0002 step=126 acc=0.8080 loss=0.1167
+[tune] lr=0.0002 step=252 acc=0.8470 loss=0.1252
+[tune] lr=0.0002 step=378 acc=0.8530 loss=0.1482
+[tune] lr=0.0002 step=504 acc=0.8620 loss=0.1678
+[tune] lr=0.0002 step=630 acc=0.8570 loss=0.1729
+[tune] lr=0.0004 step=126 acc=0.7750 loss=0.1330
+[tune] lr=0.0004 step=252 acc=0.8650 loss=0.1138
+[tune] lr=0.0004 step=378 acc=0.8780 loss=0.1240
+[tune] lr=0.0004 step=504 acc=0.8810 loss=0.1242
+[tune] lr=0.0004 step=630 acc=0.8830 loss=0.1287
+[tune] frozen banking77|Qwen/Qwen3-4B-Instruct-2507|lora|n1000|random: lr=0.0004 stop_step=630 (epochs* 10.00) val_acc=0.8830 edge=high
+5 steps to run
+
+=== [1/5] final n=200 stratified r=1 ===
+/home/jovyan/venv-paper1/bin/python -m src.train.train --model qwen3-4b --technique lora --n 200 --sampling stratified --replicate 1 --frozen-arms /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/frozen_arms.json --results /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/results.jsonl --predictions-dir /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/predictions --hub-repo yusifnuri/paper1-pilot-adapters
+[run] Qwen3-4B-Instruct-2507__lora__n200__seed101__pool1__strat lr=0.0004 schedule=200 steps=160 batch=10 frozen=yes
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
+New Data Upload               : |          |  0.00B /  0.00B            [A
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[AProcessing Files (0 / 1)      :   0%|          | 34.7kB / 47.2MB, 87.0kB/s  
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors:   1%|▏         |  594kB / 47.2MB            [A[AProcessing Files (0 / 1)      :   1%|▏         |  594kB / 47.2MB,  744kB/s  
+New Data Upload               :   1%|          |  560kB / 47.2MB,  700kB/s  [A
+
+  ...adapter_model.safetensors:   6%|▌         | 2.83MB / 47.2MB            [A[AProcessing Files (0 / 1)      :   6%|▌         | 2.83MB / 47.2MB, 2.84MB/s  
+New Data Upload               :   6%|▌         | 2.80MB / 47.2MB, 2.80MB/s  [A
+
+  ...adapter_model.safetensors:  12%|█▏        | 5.63MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  12%|█▏        | 5.63MB / 47.2MB, 4.69MB/s  
+New Data Upload               :  12%|█▏        | 5.60MB / 47.2MB, 4.67MB/s  [A
+
+  ...adapter_model.safetensors:  23%|██▎       | 10.7MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  23%|██▎       | 10.7MB / 47.2MB, 7.62MB/s  
+New Data Upload               :  23%|██▎       | 10.6MB / 47.2MB, 7.60MB/s  [A
+
+  ...adapter_model.safetensors:  36%|███▌      | 16.8MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  36%|███▌      | 16.8MB / 47.2MB, 10.5MB/s  
+New Data Upload               :  36%|███▌      | 16.8MB / 47.2MB, 10.5MB/s  [A
+
+  ...adapter_model.safetensors:  50%|████▉     | 23.5MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  50%|████▉     | 23.5MB / 47.2MB, 13.1MB/s  
+New Data Upload               :  50%|████▉     | 23.5MB / 47.2MB, 13.1MB/s  [A
+
+  ...adapter_model.safetensors:  70%|██████▉   | 33.1MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  70%|██████▉   | 33.1MB / 47.2MB, 16.5MB/s  
+New Data Upload               :  70%|██████▉   | 33.0MB / 47.2MB, 16.5MB/s  [A
+
+  ...adapter_model.safetensors:  84%|████████▍ | 39.8MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  84%|████████▍ | 39.8MB / 47.2MB, 18.1MB/s  
+New Data Upload               :  84%|████████▍ | 39.7MB / 47.2MB, 18.1MB/s  [A
+
+  ...adapter_model.safetensors:  98%|█████████▊| 46.5MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  98%|█████████▊| 46.5MB / 47.2MB, 19.4MB/s  
+New Data Upload               :  98%|█████████▊| 46.4MB / 47.2MB, 19.4MB/s  [A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.0MB / 47.2MB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉| 47.0MB / 47.2MB, 18.1MB/s  
+New Data Upload               : 100%|█████████▉| 47.0MB / 47.2MB, 18.1MB/s  [A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.0MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.0MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.0MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.0MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 47.2MB / 47.2MB, 13.1MB/s  
+New Data Upload               : 100%|██████████| 47.2MB / 47.2MB, 13.1MB/s  [A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 47.2MB / 47.2MB, 12.4MB/s  
+New Data Upload               : 100%|██████████| 47.2MB / 47.2MB, 12.4MB/s  
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            
+[done] Qwen3-4B-Instruct-2507__lora__n200__seed101__pool1__strat: train 70.8s, peak 53.3 GB, acc 0.7760
+
+=== [2/5] final n=200 stratified r=2 ===
+/home/jovyan/venv-paper1/bin/python -m src.train.train --model qwen3-4b --technique lora --n 200 --sampling stratified --replicate 2 --frozen-arms /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/frozen_arms.json --results /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/results.jsonl --predictions-dir /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/predictions --hub-repo yusifnuri/paper1-pilot-adapters
+[run] Qwen3-4B-Instruct-2507__lora__n200__seed102__pool2__strat lr=0.0004 schedule=200 steps=160 batch=10 frozen=yes
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
+New Data Upload               : |          |  0.00B /  0.00B            [A
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[AProcessing Files (0 / 1)      :   0%|          | 34.7kB / 47.2MB,   ???B/s  
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors:   1%|▏         |  596kB / 47.2MB            [A[AProcessing Files (0 / 1)      :   1%|▏         |  596kB / 47.2MB, 1.40MB/s  
+New Data Upload               :   1%|          |  561kB / 47.2MB, 1.40MB/s  [A
+
+  ...adapter_model.safetensors:   4%|▎         | 1.72MB / 47.2MB            [A[AProcessing Files (0 / 1)      :   4%|▎         | 1.72MB / 47.2MB, 2.81MB/s  
+New Data Upload               :   4%|▎         | 1.68MB / 47.2MB, 2.81MB/s  [A
+
+  ...adapter_model.safetensors:  11%|█         | 5.09MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  11%|█         | 5.09MB / 47.2MB, 6.32MB/s  
+New Data Upload               :  11%|█         | 5.05MB / 47.2MB, 6.32MB/s  [A
+
+  ...adapter_model.safetensors:  14%|█▍        | 6.77MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  14%|█▍        | 6.77MB / 47.2MB, 6.74MB/s  
+New Data Upload               :  14%|█▍        | 6.74MB / 47.2MB, 6.74MB/s  [A
+
+  ...adapter_model.safetensors:  27%|██▋       | 12.9MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  27%|██▋       | 12.9MB / 47.2MB, 10.8MB/s  
+New Data Upload               :  27%|██▋       | 12.9MB / 47.2MB, 10.8MB/s  [A
+
+  ...adapter_model.safetensors:  45%|████▌     | 21.4MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  45%|████▌     | 21.4MB / 47.2MB, 15.2MB/s  
+New Data Upload               :  45%|████▌     | 21.3MB / 47.2MB, 15.2MB/s  [A
+
+  ...adapter_model.safetensors:  62%|██████▏   | 29.2MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  62%|██████▏   | 29.2MB / 47.2MB, 18.2MB/s  
+New Data Upload               :  62%|██████▏   | 29.2MB / 47.2MB, 18.2MB/s  [A
+
+  ...adapter_model.safetensors:  76%|███████▌  | 36.0MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  76%|███████▌  | 36.0MB / 47.2MB, 20.0MB/s  
+New Data Upload               :  76%|███████▌  | 35.9MB / 47.2MB, 20.0MB/s  [A
+
+  ...adapter_model.safetensors:  89%|████████▉ | 42.1MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  89%|████████▉ | 42.1MB / 47.2MB, 21.1MB/s  
+New Data Upload               :  89%|████████▉ | 42.1MB / 47.2MB, 21.1MB/s  [A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.2MB / 47.2MB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉| 47.2MB / 47.2MB, 21.4MB/s  
+New Data Upload               : 100%|█████████▉| 47.1MB / 47.2MB, 21.4MB/s  [A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.2MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.2MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 47.2MB / 47.2MB, 16.9MB/s  
+New Data Upload               : 100%|██████████| 47.2MB / 47.2MB, 16.9MB/s  [A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 47.2MB / 47.2MB, 15.7MB/s  
+New Data Upload               : 100%|██████████| 47.2MB / 47.2MB, 15.7MB/s  
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            
+[done] Qwen3-4B-Instruct-2507__lora__n200__seed102__pool2__strat: train 71.3s, peak 53.2 GB, acc 0.7690
+
+=== [3/5] final n=1000 random r=1 ===
+/home/jovyan/venv-paper1/bin/python -m src.train.train --model qwen3-4b --technique lora --n 1000 --sampling random --replicate 1 --frozen-arms /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/frozen_arms.json --results /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/results.jsonl --predictions-dir /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/predictions --hub-repo yusifnuri/paper1-pilot-adapters
+[run] Qwen3-4B-Instruct-2507__lora__n1000__seed101__pool1 lr=0.0004 schedule=630 steps=630 batch=16 frozen=yes
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
+New Data Upload               : |          |  0.00B /  0.00B            [A
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[AProcessing Files (0 / 1)      :   0%|          | 34.7kB / 47.2MB,   ???B/s  
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors:   1%|▏         |  594kB / 47.2MB            [A[AProcessing Files (0 / 1)      :   1%|▏         |  594kB / 47.2MB, 1.40MB/s  
+New Data Upload               :   1%|          |  560kB / 47.2MB, 1.40MB/s  [A
+
+  ...adapter_model.safetensors:   1%|▏         |  594kB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors:  10%|▉         | 4.51MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  10%|▉         | 4.51MB / 47.2MB, 5.60MB/s  
+New Data Upload               :   9%|▉         | 4.48MB / 47.2MB, 5.60MB/s  [A
+
+  ...adapter_model.safetensors:  17%|█▋        | 7.87MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  17%|█▋        | 7.87MB / 47.2MB, 7.83MB/s  
+New Data Upload               :  17%|█▋        | 7.83MB / 47.2MB, 7.83MB/s  [A
+
+  ...adapter_model.safetensors:  30%|██▉       | 14.0MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  30%|██▉       | 14.0MB / 47.2MB, 11.7MB/s  
+New Data Upload               :  30%|██▉       | 14.0MB / 47.2MB, 11.7MB/s  [A
+
+  ...adapter_model.safetensors:  44%|████▍     | 20.7MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  44%|████▍     | 20.7MB / 47.2MB, 14.8MB/s  
+New Data Upload               :  44%|████▍     | 20.7MB / 47.2MB, 14.8MB/s  [A
+
+  ...adapter_model.safetensors:  57%|█████▋    | 26.9MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  57%|█████▋    | 26.9MB / 47.2MB, 16.8MB/s  
+New Data Upload               :  57%|█████▋    | 26.9MB / 47.2MB, 16.8MB/s  [A
+
+  ...adapter_model.safetensors:  75%|███████▍  | 35.3MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  75%|███████▍  | 35.3MB / 47.2MB, 19.6MB/s  
+New Data Upload               :  75%|███████▍  | 35.3MB / 47.2MB, 19.6MB/s  [A
+
+  ...adapter_model.safetensors:  91%|█████████▏| 43.1MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  91%|█████████▏| 43.1MB / 47.2MB, 21.5MB/s  
+New Data Upload               :  91%|█████████▏| 43.1MB / 47.2MB, 21.5MB/s  [A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.0MB / 47.2MB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉| 47.0MB / 47.2MB, 21.4MB/s  
+New Data Upload               : 100%|█████████▉| 47.0MB / 47.2MB, 21.4MB/s  [A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.0MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.0MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 47.2MB / 47.2MB, 16.9MB/s  
+New Data Upload               : 100%|██████████| 47.2MB / 47.2MB, 16.9MB/s  [A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 47.2MB / 47.2MB, 15.7MB/s  
+New Data Upload               : 100%|██████████| 47.2MB / 47.2MB, 15.7MB/s  
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            
+[done] Qwen3-4B-Instruct-2507__lora__n1000__seed101__pool1: train 433.6s, peak 81.0 GB, acc 0.8690
+
+=== [4/5] final n=1000 random r=2 ===
+/home/jovyan/venv-paper1/bin/python -m src.train.train --model qwen3-4b --technique lora --n 1000 --sampling random --replicate 2 --frozen-arms /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/frozen_arms.json --results /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/results.jsonl --predictions-dir /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/predictions --hub-repo yusifnuri/paper1-pilot-adapters
+[run] Qwen3-4B-Instruct-2507__lora__n1000__seed102__pool2 lr=0.0004 schedule=630 steps=630 batch=16 frozen=yes
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
+New Data Upload               : |          |  0.00B /  0.00B            [A
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[AProcessing Files (0 / 1)      :   0%|          | 34.7kB / 47.2MB,  174kB/s  
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors:   1%|▏         |  595kB / 47.2MB            [A[AProcessing Files (0 / 1)      :   1%|▏         |  595kB / 47.2MB,  993kB/s  
+New Data Upload               :   1%|          |  560kB / 47.2MB,  935kB/s  [A
+
+  ...adapter_model.safetensors:   6%|▌         | 2.84MB / 47.2MB            [A[AProcessing Files (0 / 1)      :   6%|▌         | 2.84MB / 47.2MB, 3.55MB/s  
+New Data Upload               :   6%|▌         | 2.80MB / 47.2MB, 3.50MB/s  [A
+
+  ...adapter_model.safetensors:  10%|▉         | 4.52MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  10%|▉         | 4.52MB / 47.2MB, 4.52MB/s  
+New Data Upload               :  10%|▉         | 4.48MB / 47.2MB, 4.49MB/s  [A
+
+  ...adapter_model.safetensors:  24%|██▍       | 11.2MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  24%|██▍       | 11.2MB / 47.2MB, 9.37MB/s  
+New Data Upload               :  24%|██▍       | 11.2MB / 47.2MB, 9.34MB/s  [A
+
+  ...adapter_model.safetensors:  40%|████      | 19.1MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  40%|████      | 19.1MB / 47.2MB, 13.6MB/s  
+New Data Upload               :  40%|████      | 19.1MB / 47.2MB, 13.6MB/s  [A
+
+  ...adapter_model.safetensors:  57%|█████▋    | 26.9MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  57%|█████▋    | 26.9MB / 47.2MB, 16.8MB/s  
+New Data Upload               :  57%|█████▋    | 26.9MB / 47.2MB, 16.8MB/s  [A
+
+  ...adapter_model.safetensors:  71%|███████▏  | 33.7MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  71%|███████▏  | 33.7MB / 47.2MB, 18.7MB/s  
+New Data Upload               :  71%|███████▏  | 33.6MB / 47.2MB, 18.7MB/s  [A
+
+  ...adapter_model.safetensors:  86%|████████▌ | 40.4MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  86%|████████▌ | 40.4MB / 47.2MB, 20.2MB/s  
+New Data Upload               :  86%|████████▌ | 40.4MB / 47.2MB, 20.2MB/s  [A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.1MB / 47.2MB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉| 47.1MB / 47.2MB, 21.4MB/s  
+New Data Upload               : 100%|█████████▉| 47.1MB / 47.2MB, 21.4MB/s  [A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.1MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.1MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 47.2MB / 47.2MB, 16.9MB/s  
+New Data Upload               : 100%|██████████| 47.2MB / 47.2MB, 16.9MB/s  [A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 47.2MB / 47.2MB, 15.7MB/s  
+New Data Upload               : 100%|██████████| 47.2MB / 47.2MB, 15.7MB/s  
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            
+[done] Qwen3-4B-Instruct-2507__lora__n1000__seed102__pool2: train 432.2s, peak 80.2 GB, acc 0.8720
+
+=== [5/5] final n=200 random r=1 (arm stratified) ===
+/home/jovyan/venv-paper1/bin/python -m src.train.train --model qwen3-4b --technique lora --n 200 --sampling random --replicate 1 --frozen-arms /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/frozen_arms.json --results /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/results.jsonl --predictions-dir /home/jovyan/vault/Defaukt/paper1/code-f53392627f5cc671c1c4cbcd0aa6e3ef9922f4b7/runs/stage2/predictions --hub-repo yusifnuri/paper1-pilot-adapters --arm-sampling stratified
+[run] Qwen3-4B-Instruct-2507__lora__n200__seed101__pool1 lr=0.0004 schedule=200 steps=160 batch=10 frozen=yes
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
+New Data Upload               : |          |  0.00B /  0.00B            [A
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[AProcessing Files (0 / 1)      :   0%|          | 34.7kB / 47.2MB,   ???B/s  
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors:   1%|▏         |  593kB / 47.2MB            [A[AProcessing Files (0 / 1)      :   1%|▏         |  593kB / 47.2MB, 1.40MB/s  
+New Data Upload               :   1%|          |  559kB / 47.2MB, 1.40MB/s  [A
+
+  ...adapter_model.safetensors:   2%|▏         | 1.15MB / 47.2MB            [A[AProcessing Files (0 / 1)      :   2%|▏         | 1.15MB / 47.2MB, 1.86MB/s  
+New Data Upload               :   2%|▏         | 1.12MB / 47.2MB, 1.86MB/s  [A
+
+  ...adapter_model.safetensors:  10%|▉         | 4.50MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  10%|▉         | 4.50MB / 47.2MB, 5.58MB/s  
+New Data Upload               :   9%|▉         | 4.47MB / 47.2MB, 5.58MB/s  [A
+
+  ...adapter_model.safetensors:  23%|██▎       | 10.6MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  23%|██▎       | 10.6MB / 47.2MB, 10.6MB/s  
+New Data Upload               :  22%|██▏       | 10.6MB / 47.2MB, 10.6MB/s  [A
+
+  ...adapter_model.safetensors:  37%|███▋      | 17.4MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  37%|███▋      | 17.4MB / 47.2MB, 14.4MB/s  
+New Data Upload               :  37%|███▋      | 17.3MB / 47.2MB, 14.4MB/s  [A
+
+  ...adapter_model.safetensors:  50%|████▉     | 23.5MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  50%|████▉     | 23.5MB / 47.2MB, 16.8MB/s  
+New Data Upload               :  50%|████▉     | 23.5MB / 47.2MB, 16.8MB/s  [A
+
+  ...adapter_model.safetensors:  64%|██████▍   | 30.2MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  64%|██████▍   | 30.2MB / 47.2MB, 18.9MB/s  
+New Data Upload               :  64%|██████▍   | 30.2MB / 47.2MB, 18.9MB/s  [A
+
+  ...adapter_model.safetensors:  81%|████████  | 38.0MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  81%|████████  | 38.0MB / 47.2MB, 21.1MB/s  
+New Data Upload               :  81%|████████  | 38.0MB / 47.2MB, 21.1MB/s  [A
+
+  ...adapter_model.safetensors:  98%|█████████▊| 46.4MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  98%|█████████▊| 46.4MB / 47.2MB, 23.2MB/s  
+New Data Upload               :  98%|█████████▊| 46.4MB / 47.2MB, 23.2MB/s  [A
+
+  ...adapter_model.safetensors:  99%|█████████▉| 47.0MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  99%|█████████▉| 47.0MB / 47.2MB, 21.3MB/s  
+New Data Upload               :  99%|█████████▉| 46.9MB / 47.2MB, 21.3MB/s  [A
+
+  ...adapter_model.safetensors:  99%|█████████▉| 47.0MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 47.2MB / 47.2MB, 18.1MB/s  
+New Data Upload               : 100%|██████████| 47.2MB / 47.2MB, 18.1MB/s  [A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 47.2MB / 47.2MB, 15.7MB/s  
+New Data Upload               : 100%|██████████| 47.2MB / 47.2MB, 15.7MB/s  
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            
+[done] Qwen3-4B-Instruct-2507__lora__n200__seed101__pool1: train 71.0s, peak 53.3 GB, acc 0.7450
+
+{
+ "G1": {
+  "pass": true,
+  "mean_invalid": {
+   "200": 0.004,
+   "1000": 0.001
+  },
+  "max_invalid": 0.004
+ },
+ "G2": {
+  "pass": true,
+  "ft_minus_knn_mean": 0.051000000000000045,
+  "per_replicate": {
+   "1": 0.04600000000000004,
+   "2": 0.05600000000000005
+  }
+ },
+ "G3": {
+  "pass": true,
+  "ft_minus_knn_mean": 0.028500000000000025,
+  "per_replicate": {
+   "1": 0.029000000000000026,
+   "2": 0.028000000000000025
+  }
+ },
+ "G4": {
+  "pass": true,
+  "acc_1000_minus_200": 0.09800000000000009
+ },
+ "G5": {
+  "pass": false,
+  "edges": {
+   "200": "high",
+   "1000": "high"
+  }
+ },
+ "G6": {
+  "pass": true,
+  "spread": {
+   "200": 0.007000000000000006,
+   "1000": 0.0030000000000000027
+  }
+ },
+ "G7": {
+  "pass": true,
+  "runs": 5,
+  "note": "time-band part not checked automatically"
+ },
+ "overall": "FAIL"
+}
+STAGE2_DONE exit=0
