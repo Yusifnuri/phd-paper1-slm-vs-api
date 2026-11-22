@@ -198,12 +198,13 @@ def test_stage2_dry_run_plans_tunes_then_finals(tmp_path):
         [sys.executable, str(ROOT / "scripts/run_stage2.py"), "--dry-run",
          "--frozen-arms", str(tmp_path / "a.json"), "--results", str(tmp_path / "r.jsonl")],
         capture_output=True, text=True, cwd=ROOT, check=True).stdout
-    assert out.count("--tune") == 2 and "7 steps to run" in out
-    assert out.count("--replicate 0") == 2 and "--arm-sampling stratified" in out
+    assert out.count("--tune") == 4 and "14 steps to run" in out  # kNN 2 tunes + 5 finals, FT the same
+    assert out.count("--replicate 0") == 4 and out.count("--arm-sampling stratified") == 2
+    assert out.index("src.baselines.knn") < out.index("src.train.train")  # cheap baseline first
 
 
-def _final(n, sampling, acc, unparse=10, first=3.0, last=0.5):
-    return {"status": "ok", "model": HF, "technique": "lora", "n": n, "sampling": sampling,
+def _final(n, sampling, acc, unparse=10, first=3.0, last=0.5, rep=1):
+    return {"status": "ok", "model": HF, "technique": "lora", "n": n, "sampling": sampling, "replicate": rep,
             "frozen_arm": {"arm_key": "k"}, "accuracy": acc, "n_eval": 1000, "n_unparseable": unparse,
             "first_train_loss": first, "final_train_loss": last}
 
@@ -212,8 +213,8 @@ def test_gate_report_pass_fail_and_incomplete():
     m = _stage2()
     arms = {tuning.arm_key(task_spec.TASK, HF, "lora", 200, "stratified"): {"at_grid_edge": None},
             tuning.arm_key(task_spec.TASK, HF, "lora", 1000, "random"): {"at_grid_edge": None}}
-    rows = [_final(200, "stratified", 0.70), _final(200, "stratified", 0.73),
-            _final(1000, "random", 0.82), _final(1000, "random", 0.84)]
+    rows = [_final(200, "stratified", 0.70, rep=1), _final(200, "stratified", 0.73, rep=2),
+            _final(1000, "random", 0.82, rep=1), _final(1000, "random", 0.84, rep=2)]
     rep = m.gate_report(rows, arms, HF)
     assert rep["G1"]["pass"] and rep["G4"]["pass"] and rep["G5"]["pass"] and rep["G6"]["pass"]
     assert rep["G7"]["pass"] and rep["G2"]["pass"] is None
@@ -225,3 +226,24 @@ def test_gate_report_pass_fail_and_incomplete():
     edge = dict(arms)
     edge[next(iter(edge))] = {"at_grid_edge": "high"}
     assert m.gate_report(rows, edge, HF)["G5"]["pass"] is False
+
+
+def _knn(n, sampling, acc, rep):
+    return {"status": "ok", "model": "knn:x", "technique": "knn", "n": n, "sampling": sampling,
+            "replicate": rep, "accuracy": acc, "n_eval": 1000, "n_unparseable": 0}
+
+
+def test_gate_report_g2_g3_against_knn_on_matched_replicates():
+    m = _stage2()
+    arms = {tuning.arm_key(task_spec.TASK, HF, "lora", 200, "stratified"): {"at_grid_edge": None},
+            tuning.arm_key(task_spec.TASK, HF, "lora", 1000, "random"): {"at_grid_edge": None}}
+    ft = [_final(200, "stratified", 0.70, rep=1), _final(200, "stratified", 0.73, rep=2),
+          _final(1000, "random", 0.82, rep=1), _final(1000, "random", 0.84, rep=2)]
+    knn = [_knn(200, "stratified", 0.74, 1), _knn(200, "stratified", 0.76, 2),   # FT -3.5 pts: pass
+           _knn(1000, "random", 0.90, 1), _knn(1000, "random", 0.90, 2),       # FT -7 pts: fail
+           _knn(200, "random", 0.10, 1)]                                         # other condition: ignored
+    rep = m.gate_report(ft + knn, arms, HF)
+    assert rep["G2"]["pass"] and rep["G2"]["ft_minus_knn_mean"] == pytest.approx(-0.035)
+    assert rep["G3"]["pass"] is False and rep["overall"] == "FAIL"
+    knn[2]["accuracy"] = knn[3]["accuracy"] = 0.80
+    assert m.gate_report(ft + knn, arms, HF)["overall"] == "PASS"

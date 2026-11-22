@@ -5,9 +5,9 @@ One JSONL record per test item per system run. Fields:
 
     run_id         str         unique id of one system run (one model, technique, N, seed)
     system         str         model or API id, e.g. "Qwen/Qwen3-4B-Instruct-2507"
-    arm            str         "finetuned" | "api"
+    arm            str         "finetuned" | "api" | "baseline"
     technique      str         e.g. "lora", "qlora", "dora", "rslora", "full",
-                               "icl_retrieved", "icl_random", "zero_shot"
+                               "icl_retrieved", "icl_random", "zero_shot", "knn"
     task           str         task name, e.g. "banking77"
     n_budget       int         labelled-example budget N; 0 for zero-shot
     seed           int | null  training or sampling seed; null if not applicable
@@ -41,7 +41,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
 
-ARMS = ("finetuned", "api")
+ARMS = ("finetuned", "api", "baseline")  # baseline: kNN (src/baselines/knn.py)
 RUN_LEVEL_FIELDS = ("system", "arm", "technique", "task", "n_budget", "seed")
 
 PathLike = Union[str, Path]

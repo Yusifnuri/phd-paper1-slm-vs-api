@@ -32,3 +32,11 @@ Stage 0 blocker (c), tuned-procedure code, written (offline-tested only, NOT yet
 - `scripts/run_stage2.py`: gated pilot stage 2 (Qwen3-4B, BANKING77; tune N=200 stratified and N=1,000 random; finals r=1,2 plus a random-pool N=200 final on the stratified arm), resumable, automatic report for G1, G4-G7; G2/G3 report NOT CHECKED until the kNN baseline exists.
 - `scripts/run_pilot.py` no longer forwards `--tune` (old procedure removed).
 Tests: 164/164 pass locally (18 new in `tests/train/test_tuning.py`). Still missing for the pilot: kNN baseline with pinned bge-small (G2/G3), the `?` normaliser fix check, a tag, copying the code to the server.
+
+## 2026-11-22 04:40 +03:00 (interactive session)
+Stage 0 blocker (d), kNN baseline, written (offline-tested only; never run on the real embedder or data):
+- `src/baselines/knn.py`: similarity-weighted kNN over the N-pool (weight max(cosine, 0); ties: more neighbours, then nearest), k in {1, 5, 16} chosen on val(N) of replicate 0 and frozen in `frozen_arms.json`, finals on the full 1,000-row validation of replicates >= 1, prediction records with the new schema arm `baseline`.
+- Embedder pinned: `BAAI/bge-small-en-v1.5` revision `5c38ec7c405ec4b44b94cc5a9bb96e735b38267a` (Hub API, 2026-11-22, licence mit) as the default of `SentenceTransformerEmbedder`, so the API arm's retrieval is pinned too.
+- `scripts/run_stage2.py`: kNN steps run first; G2/G3 = mean over matched replicates of (fine-tuned - kNN) accuracy >= -5 points. All seven gates are now computed except the time-band part of G7.
+Tests: 172/172 pass. Server note: `sentence-transformers` is not known to be installed on the H200; installing it with dependencies could upgrade torch, so use `pip install --no-deps sentence-transformers==6.3.0` and check `import sentence_transformers` (or run the kNN steps on the Mac and copy `results.jsonl`).
+Pilot prerequisites still open: tag a commit, copy the code to the server, start the server (researcher).

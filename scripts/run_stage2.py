@@ -8,8 +8,10 @@ Qwen3-4B, BANKING77, LoRA:
   1. tune on replicate 0: N=200 (stratified pool) and N=1,000 (random pool), 4 lr trials each;
   2. finals: replicates 1-2 at both N, plus one random-pool N=200 final (replicate 1) that uses
      the stratified N=200 arm;
-  3. gate report G1, G4-G7. G2/G3 (vs kNN) need the kNN baseline, which is not implemented yet,
-     so they are reported as NOT CHECKED, and the pilot cannot pass until they are.
+  0. first the kNN baseline (src/baselines/knn.py, CPU is enough): k tuned on replicate 0, then
+     the same replicates and pools as the fine-tuned finals;
+  3. gate report G1-G7 (G2/G3: fine-tuned minus kNN accuracy on the same pool, mean over the
+     matched replicates, must be >= -5 points; the time-band part of G7 is not automatic).
 
 Resumable: an arm already in frozen_arms.json is not re-tuned; a final already recorded "ok"
 is skipped. Runs are sequential (never two at once: timing would be corrupted).
@@ -29,7 +31,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.train import task_spec, tuning  # noqa: E402
+from src.api.retrieval import DEFAULT_EMBEDDING_MODEL, DEFAULT_EMBEDDING_REVISION  # noqa: E402
+from src.baselines.knn import SYSTEM_PREFIX  # noqa: E402
 from src.train.config import run_id  # noqa: E402
+
+KNN_SYSTEM = f"{SYSTEM_PREFIX}{DEFAULT_EMBEDDING_MODEL}@{DEFAULT_EMBEDDING_REVISION}"
 from src.train.registry import resolve  # noqa: E402
 
 # (n, sampling, replicate, arm_sampling) ; arm_sampling None = same as sampling
@@ -42,6 +48,7 @@ FINALS: List[Tuple[int, str, int, Optional[str]]] = [
 
 # Thresholds (protocol section 8, table "Gates").
 G1_MEAN, G1_MAX = 0.05, 0.08
+G23_MARGIN = 0.05
 G4_SLOPE = 0.08
 G6_SPREAD = {200: 0.05, 1000: 0.03}
 G7_RATIO = 1 / 3
@@ -70,11 +77,28 @@ def base_cmd(model: str, n: int, sampling: str, replicate: int, a: argparse.Name
     return cmd
 
 
+def knn_cmd(n: int, sampling: str, replicate: int, a: argparse.Namespace) -> List[str]:
+    return [sys.executable, "-m", "src.baselines.knn", "--n", str(n), "--sampling", sampling,
+            "--replicate", str(replicate), "--frozen-arms", str(a.frozen_arms),
+            "--results", str(a.results), "--predictions-dir", str(a.predictions_dir)]
+
+
 def plan(a: argparse.Namespace) -> List[Tuple[str, List[str]]]:
     hf = resolve(a.model).hf_id
     arms = tuning.load_arms(str(a.frozen_arms))
     done = {r["run_id"] for r in read_rows(a.results) if r.get("status") == "ok"}
     steps: List[Tuple[str, List[str]]] = []
+    if not a.skip_knn:
+        for n, sampling in TUNES:
+            key = tuning.arm_key(task_spec.TASK, KNN_SYSTEM, "knn", n, sampling)
+            if key not in arms:
+                steps.append((f"knn tune {key}", knn_cmd(n, sampling, 0, a) + ["--tune"]))
+        for n, sampling, r, arm_s in FINALS:
+            pool_seed, seed = tuning.replicate_seeds(r)
+            if run_id(KNN_SYSTEM.replace(":", "-"), "knn", n, seed, pool_seed, sampling) in done:
+                continue
+            cmd = knn_cmd(n, sampling, r, a) + (["--arm-sampling", arm_s] if arm_s else [])
+            steps.append((f"knn final n={n} {sampling} r={r}", cmd))
     for n, sampling in TUNES:
         key = tuning.arm_key(task_spec.TASK, hf, "lora", n, sampling)
         if key not in arms:
@@ -109,7 +133,16 @@ def gate_report(rows: List[Dict[str, Any]], arms: Dict[str, Any], hf: str) -> Di
                      "mean_invalid": means, "max_invalid": worst}
     else:
         out["G1"] = {"pass": None}
-    out["G2"] = out["G3"] = {"pass": None, "note": "NOT CHECKED: kNN baseline not implemented"}
+    knn = [r for r in rows if r.get("status") == "ok" and r.get("technique") == "knn"]
+    for gate, n, sampling in (("G2", 200, "stratified"), ("G3", 1000, "random")):
+        k_by_rep = {r["replicate"]: r["accuracy"] for r in knn if r["n"] == n and r.get("sampling") == sampling}
+        diffs = {r["replicate"]: r["accuracy"] - k_by_rep[r["replicate"]]
+                 for r in main[n] if r.get("replicate") in k_by_rep}
+        if diffs:
+            mean = statistics.mean(diffs.values())
+            out[gate] = {"pass": mean >= -G23_MARGIN, "ft_minus_knn_mean": mean, "per_replicate": diffs}
+        else:
+            out[gate] = {"pass": None, "note": "no matched fine-tuned and kNN replicates yet"}
     if main[200] and main[1000]:
         slope = statistics.mean(acc(main[1000])) - statistics.mean(acc(main[200]))
         out["G4"] = {"pass": slope >= G4_SLOPE, "acc_1000_minus_200": slope}
@@ -144,6 +177,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     p.add_argument("--frozen-arms", type=Path, default=ROOT / "runs/stage2/frozen_arms.json")
     p.add_argument("--results", type=Path, default=ROOT / "runs/stage2/results.jsonl")
     p.add_argument("--predictions-dir", type=Path, default=ROOT / "runs/stage2/predictions")
+    p.add_argument("--skip-knn", action="store_true", help="fine-tuned steps only")
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--report-only", action="store_true")
     a = p.parse_args(argv)
@@ -158,7 +192,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             if subprocess.call(cmd, cwd=ROOT) != 0:
                 print(f"!!! {label} failed; stopping (later steps depend on it)", flush=True)
                 return 1
-            if label.startswith("tune"):  # finals need the arm: re-plan after each tune
+            if "tune" in label:  # finals need the arm: re-plan after each tune
                 return main(argv)
     if a.dry_run:
         return 0

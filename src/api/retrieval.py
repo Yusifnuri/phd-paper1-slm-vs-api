@@ -44,6 +44,9 @@ import numpy as np
 from src.api.prompts import Example
 
 DEFAULT_EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
+# Pinned Hub revision (commit sha reported by huggingface.co/api/models/BAAI/bge-small-en-v1.5
+# on 2026-11-22, lastModified 2024-02-22; licence mit). Protocol section 2: never revision=None.
+DEFAULT_EMBEDDING_REVISION = "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a"
 TECHNIQUES = ("icl_retrieved", "icl_random", "zero_shot")
 
 
@@ -57,7 +60,8 @@ class Embedder(Protocol):
 class SentenceTransformerEmbedder:
     """Local embedding model via sentence-transformers (imported lazily)."""
 
-    def __init__(self, model_name: str = DEFAULT_EMBEDDING_MODEL, revision: str | None = None,
+    def __init__(self, model_name: str = DEFAULT_EMBEDDING_MODEL,
+                 revision: str | None = DEFAULT_EMBEDDING_REVISION,
                  device: str | None = None, batch_size: int = 64):
         self.name = model_name if revision is None else f"{model_name}@{revision}"
         self._model_name = model_name
