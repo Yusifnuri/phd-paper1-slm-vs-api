@@ -16,6 +16,12 @@ Status: Round 1 (A1 literature, A2 datasets, A3 methodology, A4 statistics, A5 f
 
 Remaining: (1) collect the A1/A3/A4/A5 Round 2 sections and send them with the A3 file back to A6 for a second pass (A6 ran as a background subagent because sessions cannot be started from an automated turn; start it as a session when the user is present); (2) update `ISSUE_REGISTER.md` and `DECISION_LOG.md` with the outcomes; (3) Round 3: write the nine deliverables (`RESEARCH_FOUNDATION.md`, `DATASET_AUDIT.md`, `EXPERIMENT_PROTOCOL.md`, `STATISTICAL_ANALYSIS_PLAN.md`, `FEASIBILITY_AND_BUDGET.md`, `NOVELTY_AND_RED_TEAM.md`, `DECISION_LOG.md`, `HUMAN_DECISIONS.md`, `PAPER_OUTLINE.md`) from the agent files, pass the eight quality gates with evidence, commit and push; (4) only then ask the user for H1–H5. Do not start any GPU campaign or API spending before the F3 pilot gate and H1.
 
+## Server quick start (2026-11-22)
+
+1. Researcher, portal terminal: `bash ~/vault/Defaukt/paper1/start_h200.sh` (worked on 2026-11-22). The host key changes on every restart: compare `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` (portal) with what the Mac reports, then `ssh-keygen -R h200-madrid`.
+2. Researcher: `hf auth whoami`; if not logged in, `hf auth login` (token never in chat or repo).
+3. Agent: `git archive <tag> | ssh jovyan@h200-madrid "mkdir -p ~/vault/Defaukt/paper1/code-<sha> && tar -x -C …"`, write `GIT_COMMIT`, `ln -sfn … ~/paper1`; `bash scripts/bootstrap_h200.sh` (venv on local disk, never reinstalls pinned packages); then `source ~/vault/Defaukt/paper1/env.sh` before every run.
+
 ## Where things are
 
 | Thing | Where |
