@@ -56,3 +56,5 @@ Status: OPEN · IN-REVIEW · FIXED-UNVERIFIED (changed in code/protocol, not yet
 | I-23 (update) | Tuning bar L-14: L-17 was unbudgeted, no flip definition, no edge rule | HIGH | A3/A4/A5 | Replaced by L-19 (12-config sensitivity, 0.7-2.0 GPU-h, margin 3 points, edge rule). FIXED-UNVERIFIED |
 | C6/C7/C8/C10/C11/C13 | Two tags; a-priori underpowered rule; R extension B77 only; no BillSum equivalence; provider tie rule; sync fallback | HIGH | A3/A4 | Applied in protocol and STAT plan. FIXED-UNVERIFIED |
 Remaining OPEN, not fixable by text: FT arm unproven (I-01/I-02), power code outside the repo (I-24), unread Spiegelhalter paper (H4), no merged/tagged code (F9/F13).
+
+- 2026-11-22: H4 closed; Spiegelhalter full text read (`docs/research/spiegelhalter-2026-notes.md`, L-21). I-10 stays HIGH pending a second literature check, but no overlap with the commercial-API, N>200 or summarisation parts. I-28: the tuning-charged break-even is confirmed as not distinguishing.

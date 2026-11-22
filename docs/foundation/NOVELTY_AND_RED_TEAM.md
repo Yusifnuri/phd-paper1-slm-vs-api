@@ -6,7 +6,8 @@ Written 2026-11-22 by the integrating session. Sources: `agents/01-literature.md
 
 - Prior work already shows the fine-tuning/ICL crossover at tens to hundreds of labels for classification and narrow tasks (Pecher 2025; Spiegelhalter, Franke, Hutter 2026; Bertsch 2025) and retrieval ICL competing with LoRA on BANKING77/CLINC150 (Bertsch 2025). The study must not claim a "first" crossover (L-01).
 - Defensible contribution, as a **conjunction** and only as "absent in the limited search I could do" (about 30 queries, see `RESEARCH_FOUNDATION.md` §2): tuned small open models vs retrieval-augmented cheap commercial APIs on the same labelled pool, N from 200 to 3,000; a BillSum label-budget curve; a break-even with the tuning cost charged; stated equal tuning effort; honest reporting where fine-tuning does not win.
-- Weakest point: the full text of Spiegelhalter et al. 2026 was not read (abstract and public repository only; H4). The authors' repository shows no commercial API arm, no BANKING77/LEDGAR, no summarisation and N ≤ 200 (L-13), but a statement about the paper itself is unverified. I-10 is HIGH, not resolved.
+- Update 2026-11-22: the full text is now read (`docs/research/spiegelhalter-2026-notes.md`, L-21): workshop poster, local Qwen3 0.6-4B only, N <= 200, 17 mostly synthetic tasks, no commercial API arm, no summarisation, RAG excluded from costs; it does charge HPO in LoRA's setup cost, so that is no longer a distinguishing claim. The paragraph below is kept for history.
+- (Superseded) Weakest point: the full text of Spiegelhalter et al. 2026 was not read (abstract and public repository only; H4). The authors' repository shows no commercial API arm, no BANKING77/LEDGAR, no summarisation and N ≤ 200 (L-13), but a statement about the paper itself is unverified. I-10 is HIGH, not resolved.
 - A mixed or null outcome is a plausible and publishable result (L-01).
 
 ## 2. Red-team outcome
