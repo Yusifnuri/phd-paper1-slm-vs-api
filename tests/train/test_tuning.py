@@ -109,7 +109,7 @@ def test_select_best_checkpoint_across_trials():
 
 
 def test_select_ties_keep_fewer_steps_and_flag_edges():
-    trials = [_trial(5e-5, [_ck(40, 0.8, 1.0), _ck(80, 0.8, 1.0)])]
+    trials = [_trial(1e-4, [_ck(40, 0.8, 1.0), _ck(80, 0.8, 1.0)])]
     sel = tuning.select(trials, BASE_LR_GRID, "accuracy", 20)
     assert sel["stop_step"] == 40 and sel["at_grid_edge"] == "low"
     sel = tuning.select([_trial(8e-4, [_ck(40, 0.8, 1.0)])], BASE_LR_GRID, "accuracy", 20)
