@@ -24,7 +24,7 @@ Remaining: (1) collect the A1/A3/A4/A5 Round 2 sections and send them with the A
 | Step 2: evaluation + statistics | branch `claude/eval-harness-3f9302`, commit `ae0aabd`, worktree under `.claude/worktrees/` |
 | Step 4: API arm harness | branch `claude/api-harness-827c78`, commit `6743026` (fixes its schema test) |
 | Step 3: pilot training harness | branch `claude/pilot-train-226845`, commit `3a5c3a3` |
-| None of these is merged into `main` | merging needs the user's OK; a scratch merge of eval + api ran 106 tests green |
+| All three merged into `main` on 2026-11-22 (merge commit `1d9a98f`, with the user's OK) | 148 tests pass (eval 64, api 45, train 39) on Python 3.13 with `requirements/eval.txt` + `api.txt` (sentence-transformers left out); the cross-branch prompt-equality and schema tests now run instead of skipping |
 
 ## Server (university H200 portal)
 
