@@ -19,7 +19,9 @@ LORA_DROPOUT = 0.05
 # Training protocol (docs/research/verification/05-design-redteam.md, "Training protocol").
 S_MIN = 200                      # minimum optimiser steps per run
 MIN_EPOCHS_AT_SMALL_N = 10       # batch is reduced at small N so S_MIN covers >= this many epochs
-BASE_LR_GRID = (5e-5, 1e-4, 2e-4, 4e-4)
+# Extended on the high side after the stage-2 pilot: the chosen lr was the old top value (4e-4) at
+# N=200 and N=1,000 (gate G5; results/pilot-stage2-2026-11-22), per the protocol's edge rule.
+BASE_LR_GRID = (5e-5, 1e-4, 2e-4, 4e-4, 8e-4)
 
 
 def lr_grid(technique: str, r: int = LORA_R, alpha: int = LORA_ALPHA) -> Tuple[float, ...]:
