@@ -19,3 +19,4 @@ wandb/
 .idea/
 .vscode/
 anaconda_projects/
+runs/
