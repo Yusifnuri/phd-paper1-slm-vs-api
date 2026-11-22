@@ -1,0 +1,83 @@
+# API arm: pinned model ids and prices.
+#
+# Every id and price below was read on `read_date` from the URL next to it.
+# Prices and ids change: re-read both on the day of each run and update this
+# file (and its read_date) before any spend. Never edit a number here without
+# a source URL.
+#
+# Token-count fallback (used by src/api/cost.py where no tokenizer is called):
+#   tokens ~= ceil(chars / chars_per_token * token_multiplier)
+# chars_per_token = 4.0 is the common rule of thumb for English text; it is an
+# ASSUMPTION, not a provider figure. It is consistent with the BillSum figure in
+# docs/research (10,268 chars ~ 2.6k tokens, i.e. ~3.95 chars/token).
+# Anthropic's multiplier of 1.3 reflects the verified finding that Haiku 5.5's
+# new tokenizer yields about 30% more tokens (docs/research/2026-11-21-verified-findings.md).
+# Replace the fallback with provider count_tokens calls in the pilot.
+
+read_date: "2026-11-21"
+chars_per_token: 4.0
+
+providers:
+  anthropic:
+    model_id: claude-haiku-5-5
+    model_id_source: "https://platform.claude.com/docs/en/models/overview (dateless ids are pinned snapshots)"
+    model_id_confirmed: true
+    input_usd_per_mtok: 0.10    # prompts up to 100K tokens; $0.50 / $2.50 beyond
+    output_usd_per_mtok: 0.50
+    batch_discount: 0.50        # Message Batches API: 50% off all token usage
+    price_source: "https://platform.claude.com/docs/en/about-claude/pricing"
+    price_read_date: "2026-11-21"
+    logprobs: false
+    # Haiku 5.5 rejects non-default temperature/top_p/top_k (HTTP 400), so it is not sent.
+    supports_temperature: false
+    # Thinking is on by default on Haiku 5.5 and billed as output; the client sends
+    # thinking={"type": "disabled"} (allowed at effort high or below; default is medium).
+    token_multiplier: 1.3
+
+  openai:
+    model_id: gpt-6-luna
+    model_id_source: "https://developers.openai.com/api/docs/models/gpt-6-luna (only listed snapshot is gpt-6-luna)"
+    model_id_confirmed: true
+    input_usd_per_mtok: 0.10    # short context (<=272K input tokens)
+    output_usd_per_mtok: 0.50
+    batch_discount: 0.50        # batch: $0.05 / $0.25
+    price_source: "https://developers.openai.com/api/docs/pricing"
+    price_read_date: "2026-11-21"
+    logprobs: false             # NOT VERIFIED: the model page does not mention logprobs; treat as unavailable
+    # Reasoning model: the client sends reasoning={"effort": "none"} (listed as supported on the
+    # model page). The model page does not state temperature support, so it is not sent.
+    supports_temperature: false
+    token_multiplier: 1.0
+
+  google:
+    model_id: gemini-3.1-flash-lite
+    model_id_source: "https://aistudio.google.com/docs/models (redirect from ai.google.dev/gemini-api/docs/models); stable; gemini-3.1-flash-lite-preview is shut down"
+    model_id_confirmed: true
+    input_usd_per_mtok: 0.25    # text/image/video input
+    output_usd_per_mtok: 1.50   # output price includes thinking tokens
+    batch_discount: 0.50        # batch: $0.125 / $0.75
+    price_source: "https://aistudio.google.com/docs/pricing (redirect from ai.google.dev/gemini-api/docs/pricing)"
+    price_read_date: "2026-11-21"
+    logprobs: false             # no logprobs for 3.x models (verified finding)
+    supports_temperature: true
+    # Thinking cannot be fully disabled; the lowest level is "minimal" ("near-off").
+    # Thinking tokens are billed as output and reported as thoughts_token_count.
+    thinking_level: minimal
+    token_multiplier: 1.0
+
+  # Cheaper alternative under consideration in docs/PLAN.md Step 0. Not in the default grid.
+  google_25:
+    model_id: gemini-2.5-flash-lite
+    model_id_source: "https://aistudio.google.com/docs/models (not deprecated, served until further notice)"
+    model_id_confirmed: true
+    input_usd_per_mtok: 0.10
+    output_usd_per_mtok: 0.40   # includes thinking tokens
+    batch_discount: 0.50        # batch: $0.05 / $0.20
+    price_source: "https://aistudio.google.com/docs/pricing"
+    price_read_date: "2026-11-21"
+    logprobs: false             # NOT VERIFIED for 2.5 on 2026-11-21
+    supports_temperature: true
+    thinking_level: null        # thinking control for 2.5 not verified; left unset
+    token_multiplier: 1.0
+
+default_grid_providers: [anthropic, openai, google]
