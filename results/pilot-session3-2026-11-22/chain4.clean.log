@@ -1,0 +1,12 @@
+CHAIN4_START 15:18:49
+=== D: billsum frozen final N=200, replicate 1 (tests apply_frozen_arm + run() for BillSum)
+[run] billsum__Qwen3-4B-Instruct-2507__lora__n200__seed101__pool1 lr=0.0004 schedule=200 steps=40 batch=10 micro=1 frozen=yes
+[hub] no --hub-repo: adapter stays at /tmp/ck/billsum__Qwen3-4B-Instruct-2507__lora__n200__seed101__pool1 (disk is ephemeral!)
+[done] billsum__Qwen3-4B-Instruct-2507__lora__n200__seed101__pool1: train 120.8s, peak 19.2 GB, val_loss 0.7877
+STEPD_EXIT=0 15:22:32
+=== E: billsum untuned N=1000, lr 4e-4, 5 epochs (measures one N=1000 run)
+[run] billsum__Qwen3-4B-Instruct-2507__lora__n1000__seed101__pool1 lr=0.0004 schedule=315 steps=315 batch=16 micro=1 frozen=no
+[hub] no --hub-repo: adapter stays at /tmp/ck/billsum__Qwen3-4B-Instruct-2507__lora__n1000__seed101__pool1 (disk is ephemeral!)
+[done] billsum__Qwen3-4B-Instruct-2507__lora__n1000__seed101__pool1: train 1512.4s, peak 19.2 GB, val_loss 0.7842
+STEPE_EXIT=0 15:49:29
+CHAIN4_DONE
