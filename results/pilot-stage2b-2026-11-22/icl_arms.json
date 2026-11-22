@@ -1,0 +1,29 @@
+{
+ "banking77|Qwen/Qwen3-4B-Instruct-2507|icl_retrieved|n200|stratified": {
+  "at_grid_edge": null,
+  "decoding": "free",
+  "embedder": "BAAI/bge-small-en-v1.5@5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+  "k": 8,
+  "ks": [
+   4,
+   8,
+   16,
+   32
+  ],
+  "max_new_tokens": 32,
+  "model": "Qwen/Qwen3-4B-Instruct-2507",
+  "per_k": {
+   "16": 0.8,
+   "32": 0.74,
+   "4": 0.78,
+   "8": 0.82
+  },
+  "pool_hash": "3522ede0c04655ab8b9edbb478b57c93bbd9b425dfc6a582bcd678bd01f279bd",
+  "technique": "icl_retrieved",
+  "tuning_replicate": 0,
+  "val_accuracy": 0.82,
+  "val_hash": "fac78d46d353dc5ba337fb5c4ef6fe5c2b86dc881dd4547aa5f048a039360f8a",
+  "val_size": 50,
+  "zero_shot_system_sha256": "9cefa0eb13f0b3113fe075579070f323e813142ea4d5c5592496323b08efd383"
+ }
+}

@@ -1,0 +1,507 @@
+CHAIN_START 11:54:27
+=== 1/3 billsum probe
+[probe] 189 longest bills, 7970 max tokens, mean over all train bills 2386
+{
+ "status": "ok",
+ "peak_mem_gb": 24.389085184,
+ "tokens_per_second": 8247.717894123909,
+ "train_seconds": 49.07890948699787,
+ "first_train_loss": 1.7929813861846924,
+ "final_train_loss": 0.9788322627544404,
+ "projected_one_run_seconds_upper_bound": {
+  "200": {
+   "n": 200,
+   "schedule_steps": 200,
+   "tokens": 7636519.921895614,
+   "seconds": 925.8948984344211
+  },
+  "1000": {
+   "n": 1000,
+   "schedule_steps": 630,
+   "tokens": 24055037.753971186,
+   "seconds": 2916.5689300684267
+  },
+  "3000": {
+   "n": 3000,
+   "schedule_steps": 940,
+   "tokens": 35891643.63290939,
+   "seconds": 4351.706022641779
+  }
+ },
+ "go_no_go_qwen_n3000": "cuts 1 and 4 (BillSum N=3,000 at R=3, exploratory)",
+ "error": null
+}
+STEP1_EXIT=0 11:57:08
+=== 2/3 stage2 rerun, shifted lr grid
+14 steps to run
+
+=== [1/14] knn tune banking77|knn:BAAI/bge-small-en-v1.5@5c38ec7c405ec4b44b94cc5a9bb96e735b38267a|knn|n200|stratified ===
+/home/jovyan/venv-paper1/bin/python -m src.baselines.knn --n 200 --sampling stratified --replicate 0 --frozen-arms runs/session2/stage2b/frozen_arms.json --results runs/session2/stage2b/results.jsonl --predictions-dir runs/session2/stage2b/predictions --tune
+[knn] tuned banking77|knn:BAAI/bge-small-en-v1.5@5c38ec7c405ec4b44b94cc5a9bb96e735b38267a|knn|n200|stratified k=1 val_acc=0.6700
+13 steps to run
+
+=== [1/13] knn tune banking77|knn:BAAI/bge-small-en-v1.5@5c38ec7c405ec4b44b94cc5a9bb96e735b38267a|knn|n1000|random ===
+/home/jovyan/venv-paper1/bin/python -m src.baselines.knn --n 1000 --sampling random --replicate 0 --frozen-arms runs/session2/stage2b/frozen_arms.json --results runs/session2/stage2b/results.jsonl --predictions-dir runs/session2/stage2b/predictions --tune
+[knn] tuned banking77|knn:BAAI/bge-small-en-v1.5@5c38ec7c405ec4b44b94cc5a9bb96e735b38267a|knn|n1000|random k=5 val_acc=0.8330
+12 steps to run
+
+=== [1/12] knn final n=200 stratified r=1 ===
+/home/jovyan/venv-paper1/bin/python -m src.baselines.knn --n 200 --sampling stratified --replicate 1 --frozen-arms runs/session2/stage2b/frozen_arms.json --results runs/session2/stage2b/results.jsonl --predictions-dir runs/session2/stage2b/predictions
+[knn] ok banking77|knn:BAAI/bge-small-en-v1.5@5c38ec7c405ec4b44b94cc5a9bb96e735b38267a|knn|n200|stratified k=1 acc=0.7300
+
+=== [2/12] knn final n=200 stratified r=2 ===
+/home/jovyan/venv-paper1/bin/python -m src.baselines.knn --n 200 --sampling stratified --replicate 2 --frozen-arms runs/session2/stage2b/frozen_arms.json --results runs/session2/stage2b/results.jsonl --predictions-dir runs/session2/stage2b/predictions
+[knn] ok banking77|knn:BAAI/bge-small-en-v1.5@5c38ec7c405ec4b44b94cc5a9bb96e735b38267a|knn|n200|stratified k=1 acc=0.7130
+
+=== [3/12] knn final n=1000 random r=1 ===
+/home/jovyan/venv-paper1/bin/python -m src.baselines.knn --n 1000 --sampling random --replicate 1 --frozen-arms runs/session2/stage2b/frozen_arms.json --results runs/session2/stage2b/results.jsonl --predictions-dir runs/session2/stage2b/predictions
+[knn] ok banking77|knn:BAAI/bge-small-en-v1.5@5c38ec7c405ec4b44b94cc5a9bb96e735b38267a|knn|n1000|random k=5 acc=0.8400
+
+=== [4/12] knn final n=1000 random r=2 ===
+/home/jovyan/venv-paper1/bin/python -m src.baselines.knn --n 1000 --sampling random --replicate 2 --frozen-arms runs/session2/stage2b/frozen_arms.json --results runs/session2/stage2b/results.jsonl --predictions-dir runs/session2/stage2b/predictions
+[knn] ok banking77|knn:BAAI/bge-small-en-v1.5@5c38ec7c405ec4b44b94cc5a9bb96e735b38267a|knn|n1000|random k=5 acc=0.8440
+
+=== [5/12] knn final n=200 random r=1 ===
+/home/jovyan/venv-paper1/bin/python -m src.baselines.knn --n 200 --sampling random --replicate 1 --frozen-arms runs/session2/stage2b/frozen_arms.json --results runs/session2/stage2b/results.jsonl --predictions-dir runs/session2/stage2b/predictions --arm-sampling stratified
+[knn] ok banking77|knn:BAAI/bge-small-en-v1.5@5c38ec7c405ec4b44b94cc5a9bb96e735b38267a|knn|n200|stratified k=1 acc=0.6810
+
+=== [6/12] tune banking77|Qwen/Qwen3-4B-Instruct-2507|lora|n200|stratified ===
+/home/jovyan/venv-paper1/bin/python -m src.train.train --model qwen3-4b --technique lora --n 200 --sampling stratified --replicate 0 --frozen-arms runs/session2/stage2b/frozen_arms.json --results runs/session2/stage2b/results.jsonl --predictions-dir runs/session2/stage2b/predictions --hub-repo yusif
+[tune] Qwen3-4B-Instruct-2507__lora__n200__seed100__pool0__strat__tune metric=accuracy grid=[0.0001, 0.0002, 0.0004, 0.0008] schedule=200 checkpoints=[40, 80, 120, 160, 200] val=200
+[tune] lr=0.0001 step=40 acc=0.7400 loss=0.1704
+[tune] lr=0.0001 step=80 acc=0.7200 loss=0.2078
+[tune] lr=0.0001 step=120 acc=0.7500 loss=0.2494
+[tune] lr=0.0001 step=160 acc=0.7500 loss=0.2804
+[tune] lr=0.0001 step=200 acc=0.7450 loss=0.2882 -> stop
+[tune] lr=0.0002 step=40 acc=0.7200 loss=0.1637
+[tune] lr=0.0002 step=80 acc=0.7300 loss=0.2034
+[tune] lr=0.0002 step=120 acc=0.7450 loss=0.2703
+[tune] lr=0.0002 step=160 acc=0.7650 loss=0.3142
+[tune] lr=0.0002 step=200 acc=0.7600 loss=0.3174
+[tune] lr=0.0004 step=40 acc=0.7350 loss=0.1995
+[tune] lr=0.0004 step=80 acc=0.7150 loss=0.2330
+[tune] lr=0.0004 step=120 acc=0.7500 loss=0.2505
+[tune] lr=0.0004 step=160 acc=0.7700 loss=0.3052
+[tune] lr=0.0004 step=200 acc=0.7700 loss=0.3153
+[tune] lr=0.0008 step=40 acc=0.3850 loss=0.6435
+[tune] lr=0.0008 step=80 acc=0.7650 loss=0.1969
+[tune] lr=0.0008 step=120 acc=0.6650 loss=0.2360
+[tune] lr=0.0008 step=160 acc=0.7500 loss=0.2763 -> stop
+[tune] frozen banking77|Qwen/Qwen3-4B-Instruct-2507|lora|n200|stratified: lr=0.0004 stop_step=160 (epochs* 8.00) val_acc=0.7700 edge=None
+6 steps to run
+
+=== [1/6] tune banking77|Qwen/Qwen3-4B-Instruct-2507|lora|n1000|random ===
+/home/jovyan/venv-paper1/bin/python -m src.train.train --model qwen3-4b --technique lora --n 1000 --sampling random --replicate 0 --frozen-arms runs/session2/stage2b/frozen_arms.json --results runs/session2/stage2b/results.jsonl --predictions-dir runs/session2/stage2b/predictions --hub-repo yusifnur
+[tune] Qwen3-4B-Instruct-2507__lora__n1000__seed100__pool0__tune metric=accuracy grid=[0.0001, 0.0002, 0.0004, 0.0008] schedule=630 checkpoints=[126, 252, 378, 504, 630] val=1000
+[tune] lr=0.0001 step=126 acc=0.7990 loss=0.1172
+[tune] lr=0.0001 step=252 acc=0.8300 loss=0.1205
+[tune] lr=0.0001 step=378 acc=0.8520 loss=0.1510
+[tune] lr=0.0001 step=504 acc=0.8550 loss=0.1776
+[tune] lr=0.0001 step=630 acc=0.8550 loss=0.1806
+[tune] lr=0.0002 step=126 acc=0.8150 loss=0.1132
+[tune] lr=0.0002 step=252 acc=0.8430 loss=0.1146
+[tune] lr=0.0002 step=378 acc=0.8580 loss=0.1486
+[tune] lr=0.0002 step=504 acc=0.8610 loss=0.1752
+[tune] lr=0.0002 step=630 acc=0.8610 loss=0.1794
+[tune] lr=0.0004 step=126 acc=0.7890 loss=0.1247
+[tune] lr=0.0004 step=252 acc=0.8320 loss=0.1125
+[tune] lr=0.0004 step=378 acc=0.8640 loss=0.1093
+[tune] lr=0.0004 step=504 acc=0.8700 loss=0.1400
+[tune] lr=0.0004 step=630 acc=0.8710 loss=0.1438
+[tune] lr=0.0008 step=126 acc=0.7300 loss=0.1752
+[tune] lr=0.0008 step=252 acc=0.7300 loss=0.2129
+[tune] lr=0.0008 step=378 acc=0.8400 loss=0.1174
+[tune] lr=0.0008 step=504 acc=0.8640 loss=0.1529
+[tune] lr=0.0008 step=630 acc=0.8630 loss=0.1642
+[tune] frozen banking77|Qwen/Qwen3-4B-Instruct-2507|lora|n1000|random: lr=0.0004 stop_step=630 (epochs* 10.00) val_acc=0.8710 edge=None
+5 steps to run
+
+=== [1/5] final n=200 stratified r=1 ===
+/home/jovyan/venv-paper1/bin/python -m src.train.train --model qwen3-4b --technique lora --n 200 --sampling stratified --replicate 1 --frozen-arms runs/session2/stage2b/frozen_arms.json --results runs/session2/stage2b/results.jsonl --predictions-dir runs/session2/stage2b/predictions --hub-repo yusif
+[run] Qwen3-4B-Instruct-2507__lora__n200__seed101__pool1__strat lr=0.0004 schedule=200 steps=160 batch=10 micro=10 frozen=yes
+Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
+New Data Upload               : |          |  0.00B /  0.00B            [A
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[AProcessing Files (0 / 1)      :   0%|          | 34.7kB / 47.2MB, 86.9kB/s  
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors:   1%|▏         |  596kB / 47.2MB            [A[AProcessing Files (0 / 1)      :   1%|▏         |  596kB / 47.2MB,  745kB/s  
+New Data Upload               :   1%|          |  561kB / 47.2MB,  701kB/s  [A
+
+  ...adapter_model.safetensors:   1%|▏         |  596kB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors:   6%|▌         | 2.84MB / 47.2MB            [A[AProcessing Files (0 / 1)      :   6%|▌         | 2.84MB / 47.2MB, 2.37MB/s  
+New Data Upload               :   6%|▌         | 2.80MB / 47.2MB, 2.34MB/s  [A
+
+  ...adapter_model.safetensors:  16%|█▌        | 7.33MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  16%|█▌        | 7.33MB / 47.2MB, 5.24MB/s  
+New Data Upload               :  15%|█▌        | 7.29MB / 47.2MB, 5.21MB/s  [A
+
+  ...adapter_model.safetensors:  29%|██▊       | 13.5MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  29%|██▊       | 13.5MB / 47.2MB, 8.43MB/s  
+New Data Upload               :  29%|██▊       | 13.5MB / 47.2MB, 8.41MB/s  [A
+
+  ...adapter_model.safetensors:  43%|████▎     | 20.2MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  43%|████▎     | 20.2MB / 47.2MB, 11.2MB/s  
+New Data Upload               :  43%|████▎     | 20.2MB / 47.2MB, 11.2MB/s  [A
+
+  ...adapter_model.safetensors:  57%|█████▋    | 27.0MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  57%|█████▋    | 27.0MB / 47.2MB, 13.5MB/s  
+New Data Upload               :  57%|█████▋    | 26.9MB / 47.2MB, 13.5MB/s  [A
+
+  ...adapter_model.safetensors:  71%|███████▏  | 33.7MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  71%|███████▏  | 33.7MB / 47.2MB, 15.3MB/s  
+New Data Upload               :  71%|███████▏  | 33.7MB / 47.2MB, 15.3MB/s  [A
+
+  ...adapter_model.safetensors:  92%|█████████▏| 43.2MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  92%|█████████▏| 43.2MB / 47.2MB, 18.0MB/s  
+New Data Upload               :  92%|█████████▏| 43.2MB / 47.2MB, 18.0MB/s  [A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.2MB / 47.2MB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉| 47.2MB / 47.2MB, 18.1MB/s  
+New Data Upload               : 100%|█████████▉| 47.1MB / 47.2MB, 18.1MB/s  [A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.2MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.2MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 47.2MB / 47.2MB, 14.8MB/s  
+New Data Upload               : 100%|██████████| 47.2MB / 47.2MB, 14.7MB/s  [A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 47.2MB / 47.2MB, 13.9MB/s  
+New Data Upload               : 100%|██████████| 47.2MB / 47.2MB, 13.9MB/s  
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            
+[done] Qwen3-4B-Instruct-2507__lora__n200__seed101__pool1__strat: train 70.9s, peak 53.3 GB, acc 0.7860
+
+=== [2/5] final n=200 stratified r=2 ===
+/home/jovyan/venv-paper1/bin/python -m src.train.train --model qwen3-4b --technique lora --n 200 --sampling stratified --replicate 2 --frozen-arms runs/session2/stage2b/frozen_arms.json --results runs/session2/stage2b/results.jsonl --predictions-dir runs/session2/stage2b/predictions --hub-repo yusif
+[run] Qwen3-4B-Instruct-2507__lora__n200__seed102__pool2__strat lr=0.0004 schedule=200 steps=160 batch=10 micro=10 frozen=yes
+Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
+New Data Upload               : |          |  0.00B /  0.00B            [A
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[AProcessing Files (0 / 1)      :   0%|          | 34.7kB / 47.2MB,   ???B/s  
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors:   1%|▏         |  596kB / 47.2MB            [A[AProcessing Files (0 / 1)      :   1%|▏         |  596kB / 47.2MB, 1.40MB/s  
+New Data Upload               :   1%|          |  561kB / 47.2MB, 1.40MB/s  [A
+
+  ...adapter_model.safetensors:   2%|▏         | 1.16MB / 47.2MB            [A[AProcessing Files (0 / 1)      :   2%|▏         | 1.16MB / 47.2MB, 1.87MB/s  
+New Data Upload               :   2%|▏         | 1.12MB / 47.2MB, 1.87MB/s  [A
+
+  ...adapter_model.safetensors:  10%|▉         | 4.52MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  10%|▉         | 4.52MB / 47.2MB, 5.61MB/s  
+New Data Upload               :  10%|▉         | 4.49MB / 47.2MB, 5.61MB/s  [A
+
+  ...adapter_model.safetensors:  20%|██        | 9.57MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  20%|██        | 9.57MB / 47.2MB, 9.54MB/s  
+New Data Upload               :  20%|██        | 9.54MB / 47.2MB, 9.54MB/s  [A
+
+  ...adapter_model.safetensors:  37%|███▋      | 17.4MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  37%|███▋      | 17.4MB / 47.2MB, 14.5MB/s  
+New Data Upload               :  37%|███▋      | 17.4MB / 47.2MB, 14.5MB/s  [A
+
+  ...adapter_model.safetensors:  51%|█████     | 24.2MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  51%|█████     | 24.2MB / 47.2MB, 17.2MB/s  
+New Data Upload               :  51%|█████     | 24.1MB / 47.2MB, 17.2MB/s  [A
+
+  ...adapter_model.safetensors:  64%|██████▍   | 30.3MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  64%|██████▍   | 30.3MB / 47.2MB, 18.9MB/s  
+New Data Upload               :  64%|██████▍   | 30.3MB / 47.2MB, 18.9MB/s  [A
+
+  ...adapter_model.safetensors:  82%|████████▏ | 38.7MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  82%|████████▏ | 38.7MB / 47.2MB, 21.5MB/s  
+New Data Upload               :  82%|████████▏ | 38.7MB / 47.2MB, 21.5MB/s  [A
+
+  ...adapter_model.safetensors:  99%|█████████▊| 46.6MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  99%|█████████▊| 46.6MB / 47.2MB, 23.3MB/s  
+New Data Upload               :  99%|█████████▊| 46.6MB / 47.2MB, 23.3MB/s  [A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.2MB / 47.2MB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉| 47.2MB / 47.2MB, 21.4MB/s  
+New Data Upload               : 100%|█████████▉| 47.1MB / 47.2MB, 21.4MB/s  [A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.2MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.2MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 47.2MB / 47.2MB, 16.9MB/s  
+New Data Upload               : 100%|██████████| 47.2MB / 47.2MB, 16.9MB/s  [A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 47.2MB / 47.2MB, 15.7MB/s  
+New Data Upload               : 100%|██████████| 47.2MB / 47.2MB, 15.7MB/s  
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            
+[done] Qwen3-4B-Instruct-2507__lora__n200__seed102__pool2__strat: train 71.1s, peak 53.2 GB, acc 0.7890
+
+=== [3/5] final n=1000 random r=1 ===
+/home/jovyan/venv-paper1/bin/python -m src.train.train --model qwen3-4b --technique lora --n 1000 --sampling random --replicate 1 --frozen-arms runs/session2/stage2b/frozen_arms.json --results runs/session2/stage2b/results.jsonl --predictions-dir runs/session2/stage2b/predictions --hub-repo yusifnur
+[run] Qwen3-4B-Instruct-2507__lora__n1000__seed101__pool1 lr=0.0004 schedule=630 steps=630 batch=16 micro=16 frozen=yes
+Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
+New Data Upload               : |          |  0.00B /  0.00B            [A
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[AProcessing Files (0 / 1)      :   0%|          | 34.7kB / 47.2MB,   ???B/s  
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors:   1%|▏         |  595kB / 47.2MB            [A[AProcessing Files (0 / 1)      :   1%|▏         |  595kB / 47.2MB,  932kB/s  
+New Data Upload               :   1%|          |  560kB / 47.2MB,  932kB/s  [A
+
+  ...adapter_model.safetensors:   2%|▏         | 1.15MB / 47.2MB            [A[AProcessing Files (0 / 1)      :   2%|▏         | 1.15MB / 47.2MB, 1.40MB/s  
+New Data Upload               :   2%|▏         | 1.12MB / 47.2MB, 1.40MB/s  [A
+
+  ...adapter_model.safetensors:  10%|▉         | 4.51MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  10%|▉         | 4.51MB / 47.2MB, 4.48MB/s  
+New Data Upload               :   9%|▉         | 4.48MB / 47.2MB, 4.48MB/s  [A
+
+  ...adapter_model.safetensors:  17%|█▋        | 7.87MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  17%|█▋        | 7.87MB / 47.2MB, 6.53MB/s  
+New Data Upload               :  17%|█▋        | 7.84MB / 47.2MB, 6.53MB/s  [A
+
+  ...adapter_model.safetensors:  30%|██▉       | 14.0MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  30%|██▉       | 14.0MB / 47.2MB, 10.0MB/s  
+New Data Upload               :  30%|██▉       | 14.0MB / 47.2MB, 10.0MB/s  [A
+
+  ...adapter_model.safetensors:  47%|████▋     | 22.4MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  47%|████▋     | 22.4MB / 47.2MB, 14.0MB/s  
+New Data Upload               :  47%|████▋     | 22.4MB / 47.2MB, 14.0MB/s  [A
+
+  ...adapter_model.safetensors:  64%|██████▍   | 30.3MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  64%|██████▍   | 30.3MB / 47.2MB, 16.8MB/s  
+New Data Upload               :  64%|██████▍   | 30.2MB / 47.2MB, 16.8MB/s  [A
+
+  ...adapter_model.safetensors:  78%|███████▊  | 37.0MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  78%|███████▊  | 37.0MB / 47.2MB, 18.5MB/s  
+New Data Upload               :  78%|███████▊  | 36.9MB / 47.2MB, 18.5MB/s  [A
+
+  ...adapter_model.safetensors:  91%|█████████▏| 43.1MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  91%|█████████▏| 43.1MB / 47.2MB, 19.6MB/s  
+New Data Upload               :  91%|█████████▏| 43.1MB / 47.2MB, 19.6MB/s  [A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.1MB / 47.2MB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉| 47.1MB / 47.2MB, 19.6MB/s  
+New Data Upload               : 100%|█████████▉| 47.0MB / 47.2MB, 19.6MB/s  [A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.1MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.1MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 47.2MB / 47.2MB, 15.7MB/s  
+New Data Upload               : 100%|██████████| 47.2MB / 47.2MB, 15.7MB/s  [A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 47.2MB / 47.2MB, 14.7MB/s  
+New Data Upload               : 100%|██████████| 47.2MB / 47.2MB, 14.7MB/s  
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            
+[done] Qwen3-4B-Instruct-2507__lora__n1000__seed101__pool1: train 432.6s, peak 81.0 GB, acc 0.8690
+
+=== [4/5] final n=1000 random r=2 ===
+/home/jovyan/venv-paper1/bin/python -m src.train.train --model qwen3-4b --technique lora --n 1000 --sampling random --replicate 2 --frozen-arms runs/session2/stage2b/frozen_arms.json --results runs/session2/stage2b/results.jsonl --predictions-dir runs/session2/stage2b/predictions --hub-repo yusifnur
+[run] Qwen3-4B-Instruct-2507__lora__n1000__seed102__pool2 lr=0.0004 schedule=630 steps=630 batch=16 micro=16 frozen=yes
+Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
+New Data Upload               : |          |  0.00B /  0.00B            [A
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[AProcessing Files (0 / 1)      :   0%|          | 34.7kB / 47.2MB,   ???B/s  
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors:   1%|▏         |  595kB / 47.2MB            [A[AProcessing Files (0 / 1)      :   1%|▏         |  595kB / 47.2MB, 1.40MB/s  
+New Data Upload               :   1%|          |  560kB / 47.2MB, 1.40MB/s  [A
+
+  ...adapter_model.safetensors:   1%|▏         |  595kB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors:  10%|▉         | 4.51MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  10%|▉         | 4.51MB / 47.2MB, 5.60MB/s  
+New Data Upload               :   9%|▉         | 4.48MB / 47.2MB, 5.60MB/s  [A
+
+  ...adapter_model.safetensors:  17%|█▋        | 7.87MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  17%|█▋        | 7.87MB / 47.2MB, 7.84MB/s  
+New Data Upload               :  17%|█▋        | 7.84MB / 47.2MB, 7.84MB/s  [A
+
+  ...adapter_model.safetensors:  31%|███       | 14.6MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  31%|███       | 14.6MB / 47.2MB, 12.1MB/s  
+New Data Upload               :  31%|███       | 14.6MB / 47.2MB, 12.1MB/s  [A
+
+  ...adapter_model.safetensors:  44%|████▍     | 20.7MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  44%|████▍     | 20.7MB / 47.2MB, 14.8MB/s  
+New Data Upload               :  44%|████▍     | 20.7MB / 47.2MB, 14.8MB/s  [A
+
+  ...adapter_model.safetensors:  58%|█████▊    | 27.5MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  58%|█████▊    | 27.5MB / 47.2MB, 17.2MB/s  
+New Data Upload               :  58%|█████▊    | 27.4MB / 47.2MB, 17.2MB/s  [A
+
+  ...adapter_model.safetensors:  78%|███████▊  | 37.0MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  78%|███████▊  | 37.0MB / 47.2MB, 20.5MB/s  
+New Data Upload               :  78%|███████▊  | 36.9MB / 47.2MB, 20.5MB/s  [A
+
+  ...adapter_model.safetensors:  93%|█████████▎| 43.7MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  93%|█████████▎| 43.7MB / 47.2MB, 21.8MB/s  
+New Data Upload               :  93%|█████████▎| 43.7MB / 47.2MB, 21.8MB/s  [A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.1MB / 47.2MB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉| 47.1MB / 47.2MB, 21.4MB/s  
+New Data Upload               : 100%|█████████▉| 47.0MB / 47.2MB, 21.4MB/s  [A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.1MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.1MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 47.2MB / 47.2MB, 16.9MB/s  
+New Data Upload               : 100%|██████████| 47.2MB / 47.2MB, 16.9MB/s  [A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 47.2MB / 47.2MB, 15.7MB/s  
+New Data Upload               : 100%|██████████| 47.2MB / 47.2MB, 15.7MB/s  
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            
+[done] Qwen3-4B-Instruct-2507__lora__n1000__seed102__pool2: train 431.3s, peak 80.2 GB, acc 0.8540
+
+=== [5/5] final n=200 random r=1 (arm stratified) ===
+/home/jovyan/venv-paper1/bin/python -m src.train.train --model qwen3-4b --technique lora --n 200 --sampling random --replicate 1 --frozen-arms runs/session2/stage2b/frozen_arms.json --results runs/session2/stage2b/results.jsonl --predictions-dir runs/session2/stage2b/predictions --hub-repo yusifnuri
+[run] Qwen3-4B-Instruct-2507__lora__n200__seed101__pool1 lr=0.0004 schedule=200 steps=160 batch=10 micro=10 frozen=yes
+Processing Files (0 / 0)      : |          |  0.00B /  0.00B            
+New Data Upload               : |          |  0.00B /  0.00B            [A
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[AProcessing Files (0 / 1)      :   0%|          | 34.7kB / 47.2MB,   ???B/s  
+
+  ...adapter_model.safetensors:   0%|          | 34.7kB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors:   1%|▏         |  595kB / 47.2MB            [A[AProcessing Files (0 / 1)      :   1%|▏         |  595kB / 47.2MB, 1.40MB/s  
+New Data Upload               :   1%|          |  561kB / 47.2MB, 1.40MB/s  [A
+
+  ...adapter_model.safetensors:   2%|▏         | 1.16MB / 47.2MB            [A[AProcessing Files (0 / 1)      :   2%|▏         | 1.16MB / 47.2MB, 1.87MB/s  
+New Data Upload               :   2%|▏         | 1.12MB / 47.2MB, 1.87MB/s  [A
+
+  ...adapter_model.safetensors:  10%|▉         | 4.52MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  10%|▉         | 4.52MB / 47.2MB, 5.60MB/s  
+New Data Upload               :  10%|▉         | 4.48MB / 47.2MB, 5.60MB/s  [A
+
+  ...adapter_model.safetensors:  20%|██        | 9.57MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  20%|██        | 9.57MB / 47.2MB, 9.53MB/s  
+New Data Upload               :  20%|██        | 9.53MB / 47.2MB, 9.53MB/s  [A
+
+  ...adapter_model.safetensors:  37%|███▋      | 17.4MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  37%|███▋      | 17.4MB / 47.2MB, 14.5MB/s  
+New Data Upload               :  37%|███▋      | 17.4MB / 47.2MB, 14.5MB/s  [A
+
+  ...adapter_model.safetensors:  51%|█████     | 24.1MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  51%|█████     | 24.1MB / 47.2MB, 17.2MB/s  
+New Data Upload               :  51%|█████     | 24.1MB / 47.2MB, 17.2MB/s  [A
+
+  ...adapter_model.safetensors:  65%|██████▌   | 30.9MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  65%|██████▌   | 30.9MB / 47.2MB, 19.3MB/s  
+New Data Upload               :  65%|██████▌   | 30.8MB / 47.2MB, 19.3MB/s  [A
+
+  ...adapter_model.safetensors:  78%|███████▊  | 37.0MB / 47.2MB            [A[AProcessing Files (0 / 1)      :  78%|███████▊  | 37.0MB / 47.2MB, 20.6MB/s  
+New Data Upload               :  78%|███████▊  | 37.0MB / 47.2MB, 20.6MB/s  [A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.1MB / 47.2MB            [A[AProcessing Files (0 / 1)      : 100%|█████████▉| 47.1MB / 47.2MB, 23.5MB/s  
+New Data Upload               : 100%|█████████▉| 47.1MB / 47.2MB, 23.5MB/s  [A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.1MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.1MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|█████████▉| 47.1MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 47.2MB / 47.2MB, 16.9MB/s  
+New Data Upload               : 100%|██████████| 47.2MB / 47.2MB, 16.9MB/s  [A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[A
+
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            [A[AProcessing Files (1 / 1)      : 100%|██████████| 47.2MB / 47.2MB, 15.7MB/s  
+New Data Upload               : 100%|██████████| 47.2MB / 47.2MB, 15.7MB/s  
+  ...adapter_model.safetensors: 100%|██████████| 47.2MB / 47.2MB            
+[done] Qwen3-4B-Instruct-2507__lora__n200__seed101__pool1: train 71.2s, peak 53.3 GB, acc 0.7530
+
+{
+ "G1": {
+  "pass": true,
+  "mean_invalid": {
+   "200": 0.0045000000000000005,
+   "1000": 0.002
+  },
+  "max_invalid": 0.006
+ },
+ "G2": {
+  "pass": true,
+  "ft_minus_knn_mean": 0.06600000000000006,
+  "per_replicate": {
+   "1": 0.05600000000000005,
+   "2": 0.07600000000000007
+  }
+ },
+ "G3": {
+  "pass": true,
+  "ft_minus_knn_mean": 0.019500000000000017,
+  "per_replicate": {
+   "1": 0.029000000000000026,
+   "2": 0.010000000000000009
+  }
+ },
+ "G4": {
+  "pass": false,
+  "acc_1000_minus_200": 0.07399999999999984
+ },
+ "G5": {
+  "pass": true,
+  "edges": {
+   "200": null,
+   "1000": null
+  }
+ },
+ "G6": {
+  "pass": true,
+  "spread": {
+   "200": 0.0030000000000000027,
+   "1000": 0.015000000000000013
+  }
+ },
+ "G7": {
+  "pass": true,
+  "runs": 5,
+  "note": "time-band part not checked automatically"
+ },
+ "overall": "FAIL"
+}
+STEP2_EXIT=0 13:12:30
+=== 3/3 local ICL vLLM smoke
+Traceback (most recent call last):
+  File "/home/jovyan/vault/Defaukt/paper1/code-ce0dd2a495144b1ebe7566fc2b866eabf0c4ed31/scripts/run_icl.py", line 12, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/jovyan/vault/Defaukt/paper1/code-ce0dd2a495144b1ebe7566fc2b866eabf0c4ed31/src/icl/cli.py", line 275, in main
+    run(argv)
+  File "/home/jovyan/vault/Defaukt/paper1/code-ce0dd2a495144b1ebe7566fc2b866eabf0c4ed31/src/icl/cli.py", line 215, in run
+    parsed, gens, _, sec = score_k(gen, task, selector, val, k)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jovyan/vault/Defaukt/paper1/code-ce0dd2a495144b1ebe7566fc2b866eabf0c4ed31/src/icl/cli.py", line 110, in score_k
+    gens = generate_all(gen, task, prompts, choices)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jovyan/vault/Defaukt/paper1/code-ce0dd2a495144b1ebe7566fc2b866eabf0c4ed31/src/icl/cli.py", line 80, in generate_all
+    out = gen.generate(list(prompts), task.max_new_tokens, choices)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jovyan/vault/Defaukt/paper1/code-ce0dd2a495144b1ebe7566fc2b866eabf0c4ed31/src/icl/generate.py", line 77, in generate
+    outs = self._engine().chat(msgs, params, use_tqdm=False,
+           ^^^^^^^^^^^^^^
+  File "/home/jovyan/vault/Defaukt/paper1/code-ce0dd2a495144b1ebe7566fc2b866eabf0c4ed31/src/icl/generate.py", line 58, in _engine
+    self._llm = LLM(model=self._model, **self._kw)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/vllm/entrypoints/llm.py", line 351, in __init__
+    self.llm_engine = LLMEngine.from_engine_args(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/vllm/v1/engine/llm_engine.py", line 183, in from_engine_args
+    return cls(
+           ^^^^
+  File "/usr/local/lib/python3.12/dist-packages/vllm/v1/engine/llm_engine.py", line 109, in __init__
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/vllm/v1/engine/core_client.py", line 93, in make_client
+    return SyncMPClient(vllm_config, executor_class, log_stats)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/vllm/v1/engine/core_client.py", line 648, in __init__
+    super().__init__(
+  File "/usr/local/lib/python3.12/dist-packages/vllm/v1/engine/core_client.py", line 477, in __init__
+    with launch_core_engines(vllm_config, executor_class, log_stats) as (
+  File "/usr/lib/python3.12/contextlib.py", line 144, in __exit__
+    next(self.gen)
+  File "/usr/local/lib/python3.12/dist-packages/vllm/v1/engine/utils.py", line 903, in launch_core_engines
+    wait_for_engine_startup(
+  File "/usr/local/lib/python3.12/dist-packages/vllm/v1/engine/utils.py", line 960, in wait_for_engine_startup
+    raise RuntimeError(
+RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {}
+STEP3a_EXIT=1
+Traceback (most recent call last):
+  File "/home/jovyan/vault/Defaukt/paper1/code-ce0dd2a495144b1ebe7566fc2b866eabf0c4ed31/scripts/run_icl.py", line 12, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/jovyan/vault/Defaukt/paper1/code-ce0dd2a495144b1ebe7566fc2b866eabf0c4ed31/src/icl/cli.py", line 275, in main
+    run(argv)
+  File "/home/jovyan/vault/Defaukt/paper1/code-ce0dd2a495144b1ebe7566fc2b866eabf0c4ed31/src/icl/cli.py", line 235, in run
+    arm = tuning.load_arm(a.frozen_arms, key)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jovyan/vault/Defaukt/paper1/code-ce0dd2a495144b1ebe7566fc2b866eabf0c4ed31/src/train/tuning.py", line 183, in load_arm
+    raise KeyError(f"{key} is not frozen in {path}; run --tune on replicate 0 first")
+KeyError: 'banking77|Qwen/Qwen3-4B-Instruct-2507|icl_retrieved|n200|stratified is not frozen in runs/session2/icl_arms.json; run --tune on replicate 0 first'
+STEP3b_EXIT=1 13:13:09
+CHAIN_DONE

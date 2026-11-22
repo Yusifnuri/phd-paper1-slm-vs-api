@@ -109,7 +109,7 @@ def test_select_best_checkpoint_across_trials():
 
 
 def test_select_ties_keep_fewer_steps_and_flag_edges():
-    trials = [_trial(1e-4, [_ck(40, 0.8, 1.0), _ck(80, 0.8, 1.0)])]
+    trials = [_trial(5e-5, [_ck(40, 0.8, 1.0), _ck(80, 0.8, 1.0)])]
     sel = tuning.select(trials, BASE_LR_GRID, "accuracy", 20)
     assert sel["stop_step"] == 40 and sel["at_grid_edge"] == "low"
     sel = tuning.select([_trial(8e-4, [_ck(40, 0.8, 1.0)])], BASE_LR_GRID, "accuracy", 20)
@@ -130,9 +130,9 @@ def test_select_loss_metric_for_summarisation():
     assert tuning.select(trials, BASE_LR_GRID, "loss", 20)["lr"] == 2e-4
 
 
-def test_lr_grid_shifted_after_pilot_g5_keeps_four_trials():
-    assert lr_grid("lora") == (1e-4, 2e-4, 4e-4, 8e-4)  # pilot: top value 4e-4 chosen, 5e-5 worst
-    assert len(lr_grid("rslora")) == 4 and lr_grid("rslora")[-1] == pytest.approx(2e-4)
+def test_lr_grid_has_five_values_after_the_pilot_reruns():
+    assert lr_grid("lora") == (5e-5, 1e-4, 2e-4, 4e-4, 8e-4)  # L-25, D-06
+    assert len(lr_grid("rslora")) == 5 and lr_grid("rslora")[-1] == pytest.approx(2e-4)
 
 
 # ------------------------------------------------------------------ frozen arms

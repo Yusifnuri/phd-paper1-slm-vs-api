@@ -21,10 +21,11 @@ LORA_DROPOUT = 0.05
 # Training protocol (docs/research/verification/05-design-redteam.md, "Training protocol").
 S_MIN = 200                      # minimum optimiser steps per run
 MIN_EPOCHS_AT_SMALL_N = 10       # batch is reduced at small N so S_MIN covers >= this many epochs
-# Shifted up after the stage-2 pilot (gate G5; results/pilot-stage2-2026-11-22): the chosen lr was the
-# old top value (4e-4) at N=200 and N=1,000, and 5e-5 was the worst value at both N. Still 4 trials per
-# system (equal effort, L-05, L-24); untested for BillSum and N=3,000 (edge flag G5 applies there too).
-BASE_LR_GRID = (1e-4, 2e-4, 4e-4, 8e-4)
+# Five trials per system (L-25, researcher's preference). History: after the first stage-2 pilot the chosen
+# lr was the old top value 4e-4 (gate G5 failed), so the grid was shifted up (L-24: 1e-4..8e-4); the rerun
+# chose 4e-4 at N=200 and N=1,000, not at an edge (G5 passed, results/pilot-stage2b-2026-11-22), so the fifth
+# value is the low one dropped earlier, 5e-5 (D-06). The edge rule still applies to every new cell.
+BASE_LR_GRID = (5e-5, 1e-4, 2e-4, 4e-4, 8e-4)
 
 
 def lr_grid(technique: str, r: int = LORA_R, alpha: int = LORA_ALPHA) -> Tuple[float, ...]:

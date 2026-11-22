@@ -62,6 +62,10 @@ def hide_broken_flash_attn() -> bool:
         return original(name, *args, **kwargs)
 
     iu.find_spec = find_spec
+    # vLLM V1 loads the model in a spawned engine process that would not inherit this patch;
+    # run the engine inside this process instead (observed: the first attempt failed for that reason).
+    import os
+    os.environ["VLLM_ENABLE_V1_MULTIPROCESSING"] = "0"
     return True
 
 

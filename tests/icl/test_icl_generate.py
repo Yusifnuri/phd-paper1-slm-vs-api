@@ -35,7 +35,10 @@ def test_hide_broken_flash_attn_patches_find_spec_only_when_import_fails(monkeyp
     original = iu.find_spec
     try:
         monkeypatch.setitem(sys.modules, "flash_attn", None)  # `import flash_attn` raises ImportError
+        monkeypatch.delenv("VLLM_ENABLE_V1_MULTIPROCESSING", raising=False)
         assert G.hide_broken_flash_attn() is True
+        import os
+        assert os.environ["VLLM_ENABLE_V1_MULTIPROCESSING"] == "0"  # engine runs in-process, so the patch applies
         assert iu.find_spec("flash_attn") is None and iu.find_spec("flash_attn.ops") is None
         assert iu.find_spec("json") is not None  # other modules untouched
     finally:
