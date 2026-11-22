@@ -19,8 +19,6 @@ LORA_DROPOUT = 0.05
 # Training protocol (docs/research/verification/05-design-redteam.md, "Training protocol").
 S_MIN = 200                      # minimum optimiser steps per run
 MIN_EPOCHS_AT_SMALL_N = 10       # batch is reduced at small N so S_MIN covers >= this many epochs
-EPOCH_GRID = (3, 5, 10, 20, 40)  # selected by validation loss, early stopping patience 2
-PATIENCE = 2
 BASE_LR_GRID = (5e-5, 1e-4, 2e-4, 4e-4)
 
 
@@ -59,7 +57,12 @@ class TrainConfig:
     effective_batch: Optional[int] = None  # None -> default_batch(n)
     micro_batch: Optional[int] = None      # None -> effective batch (one forward per step)
     s_min: int = S_MIN
-    tune: bool = False    # choose lr and epochs by validation loss (see train.tune)
+    tune: bool = False    # replicate 0: one in-run early-stopped trial per lr, freeze the best (tuning.py)
+    replicate: Optional[int] = None  # sets pool_seed = r, seed = 100 + r (protocol section 3)
+    schedule_total: Optional[int] = None  # cosine schedule length; None -> total_steps()
+    stop_step: Optional[int] = None       # stop training here (frozen arm); None -> end of schedule
+    frozen_arms: Optional[str] = None     # tune: write here; final run: read lr/schedule/stop from here
+    arm_sampling: Optional[str] = None    # use the arm frozen for this sampling (e.g. random-pool N=200 final)
     max_length: int = 1024  # ceiling: the shared prompt (77 labels) alone is ~500 tokens
     lora_r: int = LORA_R
     lora_alpha: int = LORA_ALPHA
@@ -74,6 +77,17 @@ class TrainConfig:
     checkpoint_dir: str = "checkpoints"
 
     def __post_init__(self) -> None:
+        if self.replicate is not None:
+            from .tuning import replicate_seeds
+            pool_seed, seed = replicate_seeds(self.replicate)
+            object.__setattr__(self, "pool_seed", pool_seed)
+            object.__setattr__(self, "seed", seed)
+        if self.arm_sampling is not None and self.arm_sampling not in SAMPLING:
+            raise ValueError(f"arm_sampling must be one of {SAMPLING}")
+        if self.tune and self.replicate != 0:
+            raise ValueError("--tune runs on replicate 0 only (pass --replicate 0)")
+        if self.stop_step is not None and self.stop_step > self.schedule_length():
+            raise ValueError("stop_step must not exceed the schedule length")
         if self.technique not in TECHNIQUES:
             raise ValueError(f"technique must be one of {TECHNIQUES}, got {self.technique!r}")
         if self.sampling not in SAMPLING:
@@ -108,6 +122,16 @@ class TrainConfig:
             return self.max_steps
         return max(self.epochs * self.steps_per_epoch(), self.s_min)
 
+    def schedule_length(self) -> int:
+        """Steps of the cosine schedule (warm-up and decay are computed over this length)."""
+        return self.schedule_total or self.total_steps()
+
+    def steps_to_train(self) -> int:
+        """Optimiser steps actually taken: stop_step if frozen, else the whole schedule."""
+        if self.max_steps:
+            return self.max_steps
+        return self.stop_step or self.schedule_length()
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
@@ -131,7 +155,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--lr", type=float, default=2e-4)
     p.add_argument("--s-min", type=int, default=S_MIN, help="minimum optimiser steps")
     p.add_argument("--tune", action="store_true",
-                   help="select lr (technique grid) and epochs {3,5,10,20,40} by validation loss")
+                   help="replicate 0 only: one early-stopped trial per lr, freeze the best arm")
+    p.add_argument("--replicate", type=int, default=None,
+                   help="replicate r: pool_seed=r, seed=100+r (overrides --seed/--pool-seed)")
+    p.add_argument("--frozen-arms", default=None,
+                   help="frozen_arms.json: written by --tune, read by final runs")
+    p.add_argument("--arm-sampling", choices=SAMPLING, default=None,
+                   help="final run: use the arm frozen for this sampling instead of --sampling")
     p.add_argument("--effective-batch", type=int, default=None, help="default: min(16, ceil(N/20))")
     p.add_argument("--micro-batch", type=int, default=None)
     p.add_argument("--max-length", type=int, default=1024)
@@ -150,6 +180,7 @@ def config_from_args(argv: Optional[List[str]] = None) -> TrainConfig:
     return TrainConfig(
         model=a.model, technique=a.technique, n=a.n, seed=a.seed, pool_seed=a.pool_seed,
         sampling=a.sampling, epochs=a.epochs, lr=a.lr, s_min=a.s_min, tune=a.tune,
+        replicate=a.replicate, frozen_arms=a.frozen_arms, arm_sampling=a.arm_sampling,
         effective_batch=a.effective_batch, micro_batch=a.micro_batch, max_length=a.max_length,
         max_steps=a.max_steps, eval_limit=a.eval_limit, eval_batch=a.eval_batch,
         hub_repo=a.hub_repo, results=a.results, predictions_dir=a.predictions_dir,

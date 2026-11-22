@@ -356,38 +356,6 @@ def test_lr_grid_rslora_shifted_by_sqrt_r():
     assert lr_grid("rslora") == pytest.approx(tuple(x / 4 for x in BASE_LR_GRID))  # alpha/sqrt(r) = 4x scale
 
 
-def test_select_trials_patience_and_dedupe():
-    from src.train.train import select_trials
-    cfg = TrainConfig(model="m", n=50)  # steps floor: epochs 3,5,10 all give 200 steps
-    calls = []
-
-    def fn(lr, ep):
-        calls.append((lr, ep))
-        return abs(ep - 10) * 0.1 + abs(lr - 1e-4) * 1000  # best at lr=1e-4, epochs=10 (first of floor)
-
-    sel = select_trials(fn, "lora", 50, cfg)
-    assert sel["lr"] == 1e-4 and sel["epochs"] == 3  # 3, 5, 10 identical in steps: only first is run
-    assert not any(ep in (5, 10) for _, ep in calls)
-    # patience 2: after two non-improving epoch candidates the lr is abandoned
-    cfg2 = TrainConfig(model="m", n=5000)
-    seen = []
-    sel2 = select_trials(lambda lr, ep: (seen.append((lr, ep)), 1.0 + 0.1 * EP.index(ep))[1],
-                         "lora", 5000, cfg2)
-    assert sel2["epochs"] == 3 and len([e for l, e in seen if l == 5e-5]) == 3  # 3 (best), 5, 10 -> stop
-
-
-EP = (3, 5, 10, 20, 40)
-
-
-def test_select_trials_ignores_diverged_and_fails_if_all_nan():
-    from src.train.train import select_trials
-    cfg = TrainConfig(model="m", n=5000)
-    sel = select_trials(lambda lr, ep: float("nan") if lr == 2e-4 else 1.0 + lr, "lora", 5000, cfg)
-    assert sel["lr"] == 5e-5
-    with pytest.raises(RuntimeError):
-        select_trials(lambda lr, ep: float("nan"), "lora", 5000, cfg)
-
-
 def test_pool_seeds_give_fresh_nested_pools_shared_across_methods():
     a, b = data.make_splits(N_TRAIN, 1), data.make_splits(N_TRAIN, 2)
     assert a.pool(1000) != b.pool(1000)

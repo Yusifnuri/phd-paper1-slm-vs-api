@@ -24,3 +24,11 @@ Spiegelhalter, Franke, Hutter 2026 [V, neurips.cc/virtual/2026/170044, read 2026
 
 ## 2026-11-22 03:40 +03:00 (interactive session)
 H4 closed: the researcher downloaded the Spiegelhalter et al. 2026 PDF; full-text notes in `docs/research/spiegelhalter-2026-notes.md`; L-21 logged; register, human decisions and novelty file updated. Core gap holds; "tuning cost charged" dropped as a distinguishing claim. Remaining: tuned-procedure code, power code into `analysis/`, request-count script, pilot (GPU), live API tests (H1), H3.
+
+## 2026-11-22 04:10 +03:00 (interactive session)
+Stage 0 blocker (c), tuned-procedure code, written (offline-tested only, NOT yet run on a GPU):
+- `src/train/tuning.py`: replicate seeds (pool r, train 100+r), E_max (10 below N=3,000, else 5), val(N)=min(1,000, N), five checkpoints, early stopping patience 2 (accuracy, loss tie-break; loss for summarisation), best-checkpoint selection with grid-edge flag (G5), write-once `frozen_arms.json` (conflict on re-freeze).
+- `src/train/train.py`: in-run checkpoint evaluation replaces the old retrain-per-(lr, epochs) `select_trials` (A5-12); `--tune` (replicate 0 only) runs one trial per lr and freezes (lr, schedule length, stop step); final runs with `--frozen-arms` train the same cosine schedule and stop at the frozen step; refuses replicate 0 and a batch/S_min mismatch; GPU memory released between trials; tuning GPU seconds logged for cost-per-correct.
+- `scripts/run_stage2.py`: gated pilot stage 2 (Qwen3-4B, BANKING77; tune N=200 stratified and N=1,000 random; finals r=1,2 plus a random-pool N=200 final on the stratified arm), resumable, automatic report for G1, G4-G7; G2/G3 report NOT CHECKED until the kNN baseline exists.
+- `scripts/run_pilot.py` no longer forwards `--tune` (old procedure removed).
+Tests: 164/164 pass locally (18 new in `tests/train/test_tuning.py`). Still missing for the pilot: kNN baseline with pinned bge-small (G2/G3), the `?` normaliser fix check, a tag, copying the code to the server.

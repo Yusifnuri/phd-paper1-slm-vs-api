@@ -64,8 +64,6 @@ def build_command(key: Key, a: argparse.Namespace, results: Path) -> List[str]:
     cmd = [sys.executable, "-m", "src.train.train", "--model", model, "--technique", tech,
            "--n", str(n), "--seed", str(seed), "--pool-seed", str(pool_seed),
            "--sampling", sampling, "--epochs", str(a.epochs), "--results", str(results)]
-    if a.tune and not a.smoke:
-        cmd.append("--tune")
     if a.hub_repo and not a.smoke:
         cmd += ["--hub-repo", a.hub_repo]
     if a.smoke:
@@ -119,7 +117,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     p.add_argument("--seeds", nargs="+", type=int, default=[42], help="training seeds")
     p.add_argument("--pool-seeds", nargs="+", type=int, default=[42], help="pool seeds (replicates)")
     p.add_argument("--sampling", choices=("random", "stratified"), default="random")
-    p.add_argument("--tune", action="store_true", help="choose lr and epochs by validation loss per run")
     p.add_argument("--epochs", type=int, default=3)
     p.add_argument("--hub-repo", default=None, help="private Hub repo 'user/name' for adapters")
     p.add_argument("--results", default=None, help="default runs/pilot.jsonl (smoke: runs/smoke.jsonl)")
