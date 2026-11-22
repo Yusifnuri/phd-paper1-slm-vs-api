@@ -48,7 +48,7 @@ FINALS: List[Tuple[int, str, int, Optional[str]]] = [
 
 # Thresholds (protocol section 8, table "Gates").
 G1_MEAN, G1_MAX = 0.05, 0.08
-G23_MARGIN = 0.05
+G23_MARGIN = {"G2": 0.05, "G3": 0.02}  # protocol section 8 table: 5 points at N=200, 2 points at N=1,000
 G4_SLOPE = 0.08
 G6_SPREAD = {200: 0.05, 1000: 0.03}
 G7_RATIO = 1 / 3
@@ -140,7 +140,7 @@ def gate_report(rows: List[Dict[str, Any]], arms: Dict[str, Any], hf: str) -> Di
                  for r in main[n] if r.get("replicate") in k_by_rep}
         if diffs:
             mean = statistics.mean(diffs.values())
-            out[gate] = {"pass": mean >= -G23_MARGIN, "ft_minus_knn_mean": mean, "per_replicate": diffs}
+            out[gate] = {"pass": mean >= -G23_MARGIN[gate], "ft_minus_knn_mean": mean, "per_replicate": diffs}
         else:
             out[gate] = {"pass": None, "note": "no matched fine-tuned and kNN replicates yet"}
     if main[200] and main[1000]:
