@@ -99,8 +99,9 @@ def test_guards(tmp_path):
         _run(tmp_path, g, "--technique", "icl_random", "--n", "200", "--replicate", "1", "--tune")
     with pytest.raises(KeyError):  # final before tuning: never selected on the fly
         _run(tmp_path, g, "--technique", "icl_random", "--n", "200", "--replicate", "1")
-    with pytest.raises(NotImplementedError):  # BillSum loader not wired
-        _run(tmp_path, g, "--task", "billsum", "--technique", "icl_random", "--n", "200", "--replicate", "1")
+    with pytest.raises(ValueError):  # BillSum has random pools only (the BillSum runner is tested in test_icl_billsum.py)
+        _run(tmp_path, g, "--task", "billsum", "--technique", "icl_random", "--n", "200", "--replicate", "1",
+             "--sampling", "stratified")
     assert g.calls == []
 
 

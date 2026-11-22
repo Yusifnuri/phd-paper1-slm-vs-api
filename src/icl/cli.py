@@ -21,6 +21,21 @@ labelled robustness check: it reuses the arm frozen under free generation (never
 separately), writes its own run_id (suffix __constrained) and is flagged in every record.
 
 Record `arm` is "baseline" (see ARM below); extra.arm_detail is "slm_icl".
+
+BillSum (`--task billsum`, validation split only; the test split is never read and no final_eval exists):
+k in {1, 2, 3} is selected by mean ROUGE-L F1 of the generated summaries on val(N) = min(1000, N) rows,
+frozen under arm_key("billsum", model, technique, N, "random") together with the retriever. Generation is
+the same greedy free generation (1,024 new tokens) and the same parser as the API arm. Shots are retrieved
+from the replicate's pool by `--retriever` (bge-head default; bm25 / tfidf alternatives). The choice is
+made beforehand with `--compare-retrievers` (replicate 0, first `--compare-size` = 300 validation bills):
+the ROUGE-L of retrieved vs gold summaries, no generation and no GPU needed. Finals must use the retriever
+frozen in the arm. Records carry per-item ROUGE-L and length covariates (extra.rouge_l, gen_tokens,
+gold_tokens, token_ratio, word counts, hit_cap).
+
+    python scripts/run_icl.py --model qwen3-4b --task billsum --technique icl_retrieved --n 1000 \
+        --replicate 0 --compare-retrievers --frozen-arms runs/frozen_arms.json
+    python scripts/run_icl.py --model qwen3-4b --task billsum --technique icl_retrieved --n 1000 \
+        --replicate 0 --tune --retriever bge-head --frozen-arms runs/frozen_arms.json
 """
 
 from __future__ import annotations
@@ -32,7 +47,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
-from src.api.prompts import Example, Prompt
+from src.api.prompts import Example, Prompt, parse_free_text
 from src.icl.generate import Generation, Generator
 from src.icl.render import TECHNIQUES, IclTask, ShotSelector, get_task, render
 
@@ -53,9 +68,10 @@ def accuracy(pred: Sequence[Any], gold: Sequence[Any]) -> float:
     return sum(p == g for p, g in zip(pred, gold)) / len(gold)
 
 
-def select_k(per_k: Dict[int, float]) -> Dict[str, Any]:
+def select_k(per_k: Dict[int, float], score_name: str = "val_accuracy") -> Dict[str, Any]:
     """Best k by validation score; ties go to the smaller k (fewer prompt tokens).
-    at_grid_edge flags either end of the grid (protocol section 4 edge rule)."""
+    at_grid_edge flags either end of the grid (protocol section 4 edge rule). `score_name` is the key
+    of the winning score in the result (BANKING77 val_accuracy, BillSum val_rouge_l)."""
     ks = sorted(per_k)
     best = max(ks, key=lambda k: (per_k[k], -k))
     edge = None
@@ -63,15 +79,15 @@ def select_k(per_k: Dict[int, float]) -> Dict[str, Any]:
         edge = "high"
     elif len(ks) > 1 and best == ks[0]:
         edge = "low"
-    return {"k": best, "val_accuracy": per_k[best], "per_k": {str(k): per_k[k] for k in ks},
+    return {"k": best, score_name: per_k[best], "per_k": {str(k): per_k[k] for k in ks},
             "at_grid_edge": edge}
 
 
 def run_id_for(model: str, technique: str, n: int, seed: int, pool_seed: int, sampling: str,
-               constrained: bool) -> str:
+               constrained: bool, task: str = "banking77") -> str:
     from src.train.config import run_id
 
-    rid = run_id(model, technique, n, seed, pool_seed, sampling)
+    rid = run_id(model, technique, n, seed, pool_seed, sampling, task)
     return rid + ("__constrained" if constrained else "")
 
 
@@ -113,6 +129,38 @@ def score_k(gen: Generator, task: IclTask, selector: ShotSelector, items: Sequen
     return parsed, gens, shots, seconds
 
 
+def score_values(task: IclTask, parsed: Sequence[Any], gold: Sequence[Any]) -> List[float]:
+    """Per-item score used for selection: 1/0 exact match (accuracy tasks) or ROUGE-L F1 of the generated
+    summary against the gold summary (rouge_l tasks; an unparseable/empty output scores 0)."""
+    if task.metric == "rouge_l":
+        from src.train.summarise import rouge_l_scores
+
+        return rouge_l_scores(list(parsed), list(gold))
+    return [float(p == g) for p, g in zip(parsed, gold)]
+
+
+def mean(xs: Sequence[float]) -> float:
+    if not xs:
+        raise ValueError("pred and gold must be non-empty and of equal length")
+    return sum(xs) / len(xs)
+
+
+def default_max_model_len(task: IclTask) -> int:
+    """Context window requested from vLLM. A BillSum prompt holds up to k = 3 shots plus the query, each a
+    bill of up to about 8,000 tokens (results/billsum_token_stats.json: longest Qwen example 7,970), plus
+    1,024 new tokens: 8,192 would reject most of them. [U] 40,960 not checked against vLLM 0.13.0 / the model."""
+    return 40960 if task.metric == "rouge_l" else 8192
+
+
+def billsum_record_extra(rouge: float, gen: Generation, gold: str, gold_tokens: Optional[int]) -> Dict[str, Any]:
+    """Per-item ROUGE-L and length covariates, the same fields as the fine-tuned arm (src/train/summarise.py)."""
+    from src.train.summarise import length_fields
+
+    parsed, _ = parse_free_text(gen.text, {})
+    return {"rouge_l": rouge,
+            **length_fields(parsed or "", gold, gen.output_tokens, gold_tokens, gen.finish_reason == "length")}
+
+
 # ---------------------------------------------------------------- runner
 
 def build_parser() -> argparse.ArgumentParser:
@@ -135,35 +183,53 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--predictions-dir", default="runs/predictions")
     p.add_argument("--cache-dir", default="runs/emb_cache")
     p.add_argument("--device", default=None, help="device of the embedder")
-    p.add_argument("--max-model-len", type=int, default=8192)
+    p.add_argument("--retriever", choices=("bge-head", "bm25", "tfidf"), default=None,
+                   help="BillSum icl_retrieved only: shot selector (default bge-head; finals use the frozen arm's)")
+    p.add_argument("--compare-retrievers", action="store_true",
+                   help="BillSum, replicate 0: score the retrievers by ROUGE-L of retrieved vs gold summaries "
+                        "(no generation) and write one results line; run before --tune")
+    p.add_argument("--compare-size", type=int, default=300, help="validation bills used by --compare-retrievers")
+    p.add_argument("--max-model-len", type=int, default=None, help="default: 8192 (BANKING77), 40960 (BillSum)")
     p.add_argument("--gpu-memory-utilization", type=float, default=0.85)
     p.add_argument("--eval-limit", type=int, default=None, help="smoke mode: first k validation rows")
     return p
 
 
-def run(argv: Optional[List[str]] = None, embedder=None, loader=None, generator: Optional[Generator] = None):
+def run(argv: Optional[List[str]] = None, embedder=None, loader=None, generator: Optional[Generator] = None,
+        tokenizer=None):
     """embedder / loader / generator are injectable for offline tests
-    (defaults: pinned bge, Hub train split, vLLM)."""
+    (defaults: pinned bge, Hub train split, vLLM). `tokenizer` (callable like a HF tokenizer) counts gold
+    summary tokens for the BillSum length covariates; by default the model's own tokenizer is loaded."""
     from src.api.retrieval import SentenceTransformerEmbedder
-    from src.train import data, env, registry, task_spec, tuning
+    from src.icl import retrievers
+    from src.train import billsum, data, env, registry, task_spec, tuning
 
     a = build_parser().parse_args(argv)
     task = get_task(a.task)
+    is_sum = task.name == "billsum"
     zero = a.technique == "zero_shot"
-    if a.task != "banking77" and loader is None:
-        raise NotImplementedError("BillSum loader and ROUGE-L selection are not wired in yet (src/train/data.py is BANKING77 only)")
-    if task.metric != "accuracy":
+    if task.metric not in ("accuracy", "rouge_l"):
         raise NotImplementedError(f"selection metric {task.metric!r} is not implemented")
     if a.tune and zero:
         raise ValueError("zero_shot has no k to tune; run it as a final")
     if a.tune and a.constrained:
         raise ValueError("--constrained is a robustness check on a frozen arm; it is never tuned")
+    if a.constrained and is_sum:
+        raise ValueError("--constrained is for BANKING77 label sets; BillSum is free generation only")
     if a.tune and a.replicate != tuning.TUNING_REPLICATE:
         raise ValueError("--tune runs on replicate 0 only")
-    if not a.tune and a.replicate == tuning.TUNING_REPLICATE:
+    if not a.tune and not a.compare_retrievers and a.replicate == tuning.TUNING_REPLICATE:
         raise ValueError("replicate 0 is the tuning replicate; finals use --replicate >= 1")
     if not zero and a.n < 1:
         raise ValueError("--n is required for icl_retrieved and icl_random")
+    if (a.retriever or a.compare_retrievers) and not is_sum:
+        raise ValueError("--retriever / --compare-retrievers are for --task billsum (BANKING77 uses bge)")
+    if a.retriever and a.technique != "icl_retrieved":
+        raise ValueError("--retriever applies to icl_retrieved only")
+    if is_sum and a.sampling != "random":
+        raise ValueError("BillSum has no classes: only random pools exist")
+    if a.compare_retrievers and (a.technique != "icl_retrieved" or a.replicate != tuning.TUNING_REPLICATE or a.tune):
+        raise ValueError("--compare-retrievers runs on replicate 0, technique icl_retrieved, without --tune")
     ks = tuple(int(x) for x in a.ks.split(",")) if a.ks else task.ks
 
     hf = registry.resolve(a.model).hf_id
@@ -180,32 +246,70 @@ def run(argv: Optional[List[str]] = None, embedder=None, loader=None, generator:
             print(f"[icl] already_frozen {key} k={existing[key]['k']}", flush=True)
             return rec
 
-    texts, labels = (loader or data.load_train_split)()  # train split only; the test split is never read
-    splits = data.make_splits(len(texts), pool_seed, sampling=a.sampling, labels=labels)
+    if is_sum:
+        texts, labels = (loader or billsum.load_train_split)()  # US train split only; the test split is never read
+        splits = billsum.make_splits(pool_seed)
+    else:
+        texts, labels = (loader or data.load_train_split)()  # train split only; the test split is never read
+        splits = data.make_splits(len(texts), pool_seed, sampling=a.sampling, labels=labels)
+    iid = (lambda i: billsum.item_id("train", i)) if is_sum else data.item_id
     pool_idx = [] if zero else splits.pool(a.n)
     val_idx = list(splits.val)[: tuning.val_size(a.n)] if a.tune else list(splits.val)
+    if a.compare_retrievers:
+        val_idx = list(splits.val)[: a.compare_size]
     if a.eval_limit:
         val_idx = val_idx[: a.eval_limit]
-    pool = [Example(data.item_id(i), texts[i], labels[i]) for i in pool_idx]
-    val = [Example(data.item_id(i), texts[i], labels[i]) for i in val_idx]
+    pool = [Example(iid(i), texts[i], labels[i]) for i in pool_idx]
+    val = [Example(iid(i), texts[i], labels[i]) for i in val_idx]
     gold = [e.output for e in val]
+    split_info = {"pool_hash": None if zero else data.indices_hash(pool_idx), "val_hash": data.indices_hash(val_idx)}
 
-    emb = None
-    if a.technique == "icl_retrieved":
+    # Retriever (BillSum): the flag on replicate 0, the frozen arm's choice for finals.
+    retriever = retrievers.DEFAULT_RETRIEVER
+    if is_sum and a.technique == "icl_retrieved":
+        retriever = a.retriever or retrievers.DEFAULT_RETRIEVER
+        if not a.tune and not a.compare_retrievers:
+            frozen_r = tuning.load_arm(a.frozen_arms, key).get("retriever", retrievers.DEFAULT_RETRIEVER)
+            if a.retriever and a.retriever != frozen_r:
+                raise ValueError(f"arm {key} was frozen with retriever {frozen_r!r}; finals must use it, got {a.retriever!r}")
+            retriever = frozen_r
+
+    if a.compare_retrievers:
         emb = embedder or SentenceTransformerEmbedder(device=a.device)
+        cmp = retrievers.compare_retrievers(pool, val, embedder=emb, cache_dir=a.cache_dir)
+        record = {"status": "retriever_comparison", "arm_key": key, "model": hf, "task": task.name,
+                  "technique": a.technique, "n": a.n, "replicate": a.replicate, "embedder": emb.name,
+                  "comparison": cmp, "eval_split": "validation", **split_info,
+                  "git_commit": env.git_commit(), "timestamp_utc": env.utc_now()}
+        _append(a.results, record)
+        print(f"[icl] retriever_comparison {key} best={cmp['best']} "
+              + " ".join(f"{k}={v['topk']:.4f}" for k, v in cmp["retrievers"].items()), flush=True)
+        return record
+
+    emb, sims = None, None
+    if a.technique == "icl_retrieved":
+        if retriever == "bge-head":
+            emb = embedder or SentenceTransformerEmbedder(device=a.device)
+        else:
+            sims = retrievers.similarity(retriever, [e.input for e in pool], [e.input for e in val])
     rand_seed = a.random_seed if a.random_seed is not None else seed
     t0 = time.perf_counter()
-    selector = ShotSelector(a.technique, pool, val, embedder=emb, cache_dir=a.cache_dir, seed=rand_seed)
+    selector = ShotSelector(a.technique, pool, val, embedder=emb, cache_dir=a.cache_dir, seed=rand_seed, sims=sims)
     select_seconds = time.perf_counter() - t0
+    if a.max_model_len is None:
+        a.max_model_len = default_max_model_len(task)
     gen = generator or _default_generator(hf, a)
 
-    rid = run_id_for(hf, a.technique, n_budget, seed, pool_seed, a.sampling, a.constrained)
+    rid = run_id_for(hf, a.technique, n_budget, seed, pool_seed, a.sampling, a.constrained, a.task)
     base = {"model": hf, "technique": a.technique, "task": task.name, "n": n_budget, "seed": seed,
             "pool_seed": pool_seed, "sampling": a.sampling, "replicate": a.replicate,
             "embedder": emb.name if emb else None, "select_seconds": select_seconds,
-            "pool_hash": None if zero else data.indices_hash(pool_idx),
-            "val_hash": data.indices_hash(val_idx), "decoding": "constrained" if a.constrained else "free",
+            "pool_hash": split_info["pool_hash"],
+            "val_hash": split_info["val_hash"], "decoding": "constrained" if a.constrained else "free",
             "git_commit": env.git_commit(), "timestamp_utc": env.utc_now()}
+    if is_sum:
+        base["retriever"] = retriever if a.technique == "icl_retrieved" else None
+        base["max_model_len"] = a.max_model_len
 
     if a.tune:
         per_k: Dict[int, float] = {}
@@ -213,21 +317,24 @@ def run(argv: Optional[List[str]] = None, embedder=None, loader=None, generator:
         seconds = 0.0
         for k in ks:
             parsed, gens, _, sec = score_k(gen, task, selector, val, k)
-            per_k[k] = accuracy(parsed, gold)
+            per_k[k] = mean(score_values(task, parsed, gold))
             tokens_in += sum(g.input_tokens or 0 for g in gens)
             tokens_out += sum(g.output_tokens or 0 for g in gens)
             seconds += sec
-        sel = select_k(per_k)
+        sel = select_k(per_k, "val_rouge_l" if is_sum else "val_accuracy")
         entry = {**sel, "ks": list(ks), "val_size": len(val), "tuning_replicate": 0,
                  "technique": a.technique, "model": hf, "embedder": base["embedder"],
                  "decoding": "free", "max_new_tokens": task.max_new_tokens,
                  "zero_shot_system_sha256": _system_hash(task),
                  "pool_hash": base["pool_hash"], "val_hash": base["val_hash"]}
+        if is_sum:  # BANKING77 arms keep exactly the fields they had
+            entry.update(metric="rouge_l", retriever=base["retriever"])
         sha = tuning.freeze_arm(a.frozen_arms, key, entry)
         record = {"status": "tuned", "run_id": rid + "__tune", "arm_key": key, "frozen_arms_sha256": sha,
                   "selection": entry, "prompt_tokens": tokens_in, "output_tokens": tokens_out,
                   "generate_seconds": seconds, **base}
-        msg = f"k={sel['k']} val_acc={sel['val_accuracy']:.4f}"
+        msg = (f"k={sel['k']} val_rouge_l={sel['val_rouge_l']:.4f}" if is_sum
+               else f"k={sel['k']} val_acc={sel['val_accuracy']:.4f}")
     else:
         if zero:
             arm, k, frozen = None, 0, None
@@ -236,27 +343,55 @@ def run(argv: Optional[List[str]] = None, embedder=None, loader=None, generator:
             k = int(arm["k"])
             frozen = {"arm_key": key, "frozen_arms_sha256": tuning.file_hash(a.frozen_arms)}
         parsed, gens, shots, seconds = score_k(gen, task, selector, val, k, constrained=a.constrained)
+        rouge = score_values(task, parsed, gold) if is_sum else None
+        gold_toks = _gold_token_counts(hf, gold, tokenizer) if is_sum else None
         recs = [make_record(run_id=rid, system=hf, task=task, technique=a.technique, n_budget=n_budget,
                             seed=rand_seed if a.technique == "icl_random" else None, item=it, gen=g, k=k,
                             shot_ids=[s.id for s in sh], max_cosine=mc, constrained=a.constrained,
                             extra={"pool_seed": pool_seed, "pool_hash": base["pool_hash"],
-                                   "replicate": a.replicate})
-                for it, g, sh, mc in zip(val, gens, shots, selector.max_cosine)]
+                                   "replicate": a.replicate,
+                                   **(billsum_record_extra(rouge[j], g, it.output, gold_toks[j]) if is_sum else {}),
+                                   **({"retriever": base["retriever"]} if is_sum else {})})
+                for j, (it, g, sh, mc) in enumerate(zip(val, gens, shots, selector.max_cosine))]
         pred_path = Path(a.predictions_dir) / f"{rid}.jsonl"
         pred_path.parent.mkdir(parents=True, exist_ok=True)
         pred_path.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in recs), encoding="utf-8")
+        if is_sum:
+            from src.train.summarise import aggregate
+
+            score_fields = {**aggregate(recs), "n_eval": len(recs)}  # rouge_l, n_unparseable, length statistics
+        else:  # key order as before the BillSum change
+            score_fields = {"accuracy": sum(r["parsed"] == r["gold"] for r in recs) / len(recs),
+                            "n_eval": len(recs), "n_unparseable": sum(not r["parse_ok"] for r in recs)}
         record = {"status": "ok", "run_id": rid, "k": k, "frozen_arm": frozen,
-                  "accuracy": sum(r["parsed"] == r["gold"] for r in recs) / len(recs),
-                  "n_eval": len(recs), "n_unparseable": sum(not r["parse_ok"] for r in recs),
+                  **score_fields,
                   "prompt_tokens": sum(g.input_tokens or 0 for g in gens),
                   "output_tokens": sum(g.output_tokens or 0 for g in gens),
                   "generate_seconds": seconds, "eval_split": "validation", **base}
-        msg = f"k={k} acc={record['accuracy']:.4f}"
-    Path(a.results).parent.mkdir(parents=True, exist_ok=True)
-    with open(a.results, "a", encoding="utf-8") as fh:
-        fh.write(json.dumps(record, ensure_ascii=False) + "\n")
+        msg = f"k={k} rouge_l={record['rouge_l']:.4f}" if is_sum else f"k={k} acc={record['accuracy']:.4f}"
+    _append(a.results, record)
     print(f"[icl] {record['status']} {key or 'zero_shot'} {msg}", flush=True)
     return record
+
+
+def _append(path: str, record: Dict[str, Any]) -> None:
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a", encoding="utf-8") as fh:
+        fh.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
+def _gold_token_counts(hf_id: str, golds: Sequence[str], tokenizer=None) -> List[Optional[int]]:
+    """Token counts of the gold summaries in the model's tokeniser (length covariate). None when no
+    tokenizer can be loaded (printed, never guessed)."""
+    try:
+        if tokenizer is None:
+            from transformers import AutoTokenizer
+
+            tokenizer = AutoTokenizer.from_pretrained(hf_id)
+        return [len(tokenizer(g, add_special_tokens=False)["input_ids"]) for g in golds]
+    except Exception as e:  # noqa: BLE001 - length covariate is optional; ROUGE does not depend on it
+        print(f"[icl] gold token counts unavailable ({type(e).__name__}): token_ratio will be null", flush=True)
+        return [None] * len(golds)
 
 
 def _system_hash(task: IclTask) -> str:

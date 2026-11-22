@@ -80,6 +80,9 @@ class TrainConfig:
     eval_limit: Optional[int] = None  # smoke mode: evaluate only the first k validation items
     eval_batch: int = 64
     max_new_tokens: int = MAX_NEW_TOKENS
+    gen_eval: bool = False            # BillSum only: generate summaries on validation and score ROUGE-L (GPU time)
+    gen_limit: Optional[int] = None   # smoke mode: generate for the first k validation bills only
+    gen_batch: int = 8                # generation batch for BillSum (long prompts; eval_batch is for BANKING77)
     hub_repo: Optional[str] = None
     results: str = "runs/pilot.jsonl"
     predictions_dir: str = "runs/predictions"
@@ -92,6 +95,12 @@ class TrainConfig:
             object.__setattr__(self, "max_length", BILLSUM_MAX_LENGTH if self.task == "billsum" else 1024)
         if self.val_cap < 1:
             raise ValueError("val_cap must be >= 1")
+        if self.gen_eval and self.task != "billsum":
+            raise ValueError("--gen-eval is for --task billsum (BANKING77 always generates)")
+        if self.gen_limit is not None and self.gen_limit < 1:
+            raise ValueError("gen_limit must be >= 1")
+        if self.gen_batch < 1:
+            raise ValueError("gen_batch must be >= 1")
         if self.replicate is not None:
             from .tuning import replicate_seeds
             pool_seed, seed = replicate_seeds(self.replicate)
@@ -193,6 +202,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--max-steps", type=int, default=None, help="smoke mode: stop after k steps")
     p.add_argument("--eval-limit", type=int, default=None, help="smoke mode: first k val items")
     p.add_argument("--eval-batch", type=int, default=64)
+    p.add_argument("--gen-eval", action="store_true",
+                   help="billsum only: generate validation summaries (greedy, 1,024 tokens) and score ROUGE-L; costs GPU time")
+    p.add_argument("--gen-limit", type=int, default=None, help="smoke mode: summarise the first k validation bills only")
+    p.add_argument("--gen-batch", type=int, default=8, help="billsum generation batch size")
     p.add_argument("--hub-repo", default=None, help="private Hub repo 'user/name' for adapters")
     p.add_argument("--results", default="runs/pilot.jsonl")
     p.add_argument("--predictions-dir", default="runs/predictions")
@@ -209,6 +222,7 @@ def config_from_args(argv: Optional[List[str]] = None) -> TrainConfig:
         task=a.task, grad_checkpointing=a.grad_checkpointing, val_cap=a.val_cap,
         effective_batch=a.effective_batch, micro_batch=a.micro_batch, max_length=a.max_length,
         max_steps=a.max_steps, eval_limit=a.eval_limit, eval_batch=a.eval_batch,
+        gen_eval=a.gen_eval, gen_limit=a.gen_limit, gen_batch=a.gen_batch,
         hub_repo=a.hub_repo, results=a.results, predictions_dir=a.predictions_dir,
         checkpoint_dir=a.checkpoint_dir,
     )

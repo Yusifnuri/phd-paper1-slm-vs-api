@@ -66,11 +66,20 @@ def stop_token_ids(tokenizer: Any, completion_ids: Sequence[int]) -> List[int]:
 def generate_predictions(
     model: Any, tokenizer: Any, queries: Sequence[str], stop_ids: Sequence[int],
     pad_id: int, batch_size: int, max_new_tokens: int,
+    prompt_fn: Optional[Callable[[Any, str], List[int]]] = None, use_cache: Optional[bool] = None,
 ) -> List[Dict[str, Any]]:
-    """Greedy batched generation. Returns per item: text, input_tokens, output_tokens."""
+    """Greedy batched generation (left padding). Returns per item: text, input_tokens, output_tokens
+    and `stopped` (a stop token ended the output; False means the max_new_tokens cap cut it).
+
+    prompt_fn(tokenizer, query) -> prompt ids defaults to the BANKING77 prompt; the summarisation
+    evaluation passes the BillSum one. use_cache=None leaves the model's setting untouched
+    (BANKING77); the BillSum training model has use_cache off for gradient checkpointing, so
+    src/train/summarise.py passes True.
+    """
     import torch
 
-    prompts = [prompt_ids(tokenizer, q) for q in queries]
+    make_prompt = prompt_fn or prompt_ids
+    prompts = [make_prompt(tokenizer, q) for q in queries]
     order = sorted(range(len(prompts)), key=lambda i: len(prompts[i]))  # similar lengths together
     out: List[Optional[Dict[str, Any]]] = [None] * len(prompts)
     stops = set(stop_ids)
@@ -81,17 +90,19 @@ def generate_predictions(
             idx = order[s:s + batch_size]
             ids, mask = left_pad([prompts[i] for i in idx], pad_id)
             ids_t = torch.tensor(ids, device=device)
+            extra_kw = {} if use_cache is None else {"use_cache": use_cache}
             gen = model.generate(
                 input_ids=ids_t, attention_mask=torch.tensor(mask, device=device),
                 max_new_tokens=max_new_tokens, do_sample=False,
-                eos_token_id=list(stop_ids), pad_token_id=pad_id,
+                eos_token_id=list(stop_ids), pad_token_id=pad_id, **extra_kw,
             )[:, ids_t.shape[1]:].tolist()
-            for i, g in zip(idx, gen):
-                cut = next((k for k, t in enumerate(g) if t in stops), len(g))
-                g = g[:cut]
+            for i, gen_i in zip(idx, gen):
+                cut = next((k for k, t in enumerate(gen_i) if t in stops), len(gen_i))
+                g = gen_i[:cut]
                 out[i] = {
                     "text": tokenizer.decode(g, skip_special_tokens=True),
                     "input_tokens": len(prompts[i]), "output_tokens": len(g),
+                    "stopped": cut < len(gen_i),
                 }
     return out  # type: ignore[return-value]
 

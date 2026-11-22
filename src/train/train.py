@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
 from . import data, env, task_spec
-from . import billsum, tuning
+from . import billsum, summarise, tuning
 from .config import TrainConfig, config_from_args, lr_grid, run_id
 from .evaluate import evaluate, stop_token_ids
 from .hub import push_file, push_folder, safe_error
@@ -274,8 +274,9 @@ def apply_frozen_arm(cfg: TrainConfig, hf_id: str):
 def run(cfg: TrainConfig, prep=None, selection: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """One final (or untuned) training run, evaluated on validation; appends one JSON line.
 
-    BANKING77: generation on the validation rows, accuracy. BillSum: validation loss only; summary
-    generation and ROUGE-L evaluation are NOT implemented here yet (record: generation_eval=False).
+    BANKING77: generation on the validation rows, accuracy. BillSum: validation loss, plus (only with
+    cfg.gen_eval) greedy summary generation on the first cfg.gen_limit validation bills and ROUGE-L
+    with length statistics (src/train/summarise.py); without it generation_eval=False.
     """
     spec, texts, labels_all, splits, tok, pad_id = prep or _prepare(cfg)
     cfg, arm_info = apply_frozen_arm(cfg, spec.hf_id)
@@ -305,6 +306,16 @@ def run(cfg: TrainConfig, prep=None, selection: Optional[Dict[str, Any]] = None)
             stop_ids=_stop_ids(tok, labels_all), pad_id=pad_id, batch_size=cfg.eval_batch,
             max_new_tokens=cfg.max_new_tokens,
         )
+    sev = None
+    if is_sum and cfg.gen_eval:
+        gen_val = val[: cfg.gen_limit] if cfg.gen_limit else val
+        sev = summarise.evaluate_summaries(
+            model, tok, run_id=rid, system=spec.hf_id, technique=cfg.technique, n=cfg.n, seed=cfg.seed,
+            items=[(i, texts[i], labels_all[i]) for i in gen_val],
+            stop_ids=summarise.summary_stop_ids(tok, labels_all), pad_id=pad_id,
+            batch_size=cfg.gen_batch, max_new_tokens=billsum.MAX_NEW_TOKENS,
+        )
+        ev = sev  # same prediction-file and hub path as BANKING77 below
     pred_path = Path(cfg.predictions_dir) / f"{rid}.jsonl"
     if ev is not None:
         pred_path.parent.mkdir(parents=True, exist_ok=True)
@@ -342,10 +353,12 @@ def run(cfg: TrainConfig, prep=None, selection: Optional[Dict[str, Any]] = None)
         "max_steps": cfg.max_steps, "trainable_params": n_trainable,
         "load_seconds": load_seconds, "val_loss": vloss,
         "peak_mem_gb": stats["peak_mem_bytes"] / 1e9, **stats,
-        "accuracy": ev["accuracy"] if ev else None, "n_eval": ev["n_eval"] if ev else len(val),
+        "accuracy": ev["accuracy"] if ev and not sev else None, "n_eval": ev["n_eval"] if ev else len(val),
         "n_unparseable": ev["n_unparseable"] if ev else None,
         "eval_seconds": ev["eval_seconds"] if ev else None, "eval_split": "validation",
         "generation_eval": ev is not None,
+        **({"summary_eval": {k: v for k, v in sev.items() if k != "records"}, "gen_batch": cfg.gen_batch,
+            "gen_limit": cfg.gen_limit, "max_new_tokens": billsum.MAX_NEW_TOKENS} if sev else {}),
         "prompt": ("billsum task_spec" if is_sum else "task_spec (system with 77 labels + 'Input: q\\nLabel:')"),
         **summ,
         **env.gpu_info(), "libs": env.lib_versions(), "git_commit": env.git_commit(),
@@ -358,7 +371,8 @@ def run(cfg: TrainConfig, prep=None, selection: Optional[Dict[str, Any]] = None)
             push_file(cfg.hub_repo, cfg.results, f"logs/{Path(cfg.results).name}")
         except Exception as e:
             print(f"[hub] log upload failed: {safe_error(e)}", flush=True)
-    acc = f"acc {record['accuracy']:.4f}" if ev else f"val_loss {vloss:.4f}"
+    acc = (f"rougeL {sev['rouge_l']:.4f} (n={sev['n_eval']})" if sev
+           else f"acc {record['accuracy']:.4f}" if ev else f"val_loss {vloss:.4f}")
     print(f"[done] {rid}: train {record['train_seconds']:.1f}s, peak {record['peak_mem_gb']:.1f} GB, {acc}", flush=True)
     del model
     _release_gpu()

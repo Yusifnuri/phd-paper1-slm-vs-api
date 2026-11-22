@@ -51,9 +51,8 @@ TASKS: Dict[str, IclTask] = {
         context={"task_description": prompts.BANKING77_DESCRIPTION, "labels": list(task_spec.BANKING77_LABELS)},
         ks=(4, 8, 16, 32, 64), max_new_tokens=task_spec.MAX_NEW_TOKENS, metric="accuracy",
         parse=_parse_banking77),
-    # BillSum: k <= 3 (protocol section 1). Output cap 1,024 for every arm (protocol section 5;
-    # the API template's 2,048 is slated to change). No BillSum loader or ROUGE selection is
-    # wired into the CLI yet; rendering is ready and tested.
+    # BillSum: k <= 3 (protocol section 1). Output cap 1,024 for every arm (protocol section 5).
+    # The CLI selects k by validation ROUGE-L (src/icl/cli.py).
     "billsum": IclTask(
         name="billsum", template="summarisation",
         context={"task_description": prompts.BILLSUM_DESCRIPTION},
@@ -90,22 +89,29 @@ class ShotSelector:
 
     def __init__(self, technique: str, pool: Sequence[Example], items: Sequence[Example], *,
                  embedder: Optional[Embedder] = None, cache_dir: Optional[str] = None,
-                 seed: Optional[int] = None):
+                 seed: Optional[int] = None, sims: Optional[np.ndarray] = None):
         if technique not in TECHNIQUES:
             raise ValueError(f"technique must be one of {TECHNIQUES}")
         if technique != "zero_shot" and not pool:
             raise ValueError("empty pool")
         if technique == "icl_random" and seed is None:
             raise ValueError("icl_random needs a seed")
-        if technique == "icl_retrieved" and embedder is None:
-            raise ValueError("icl_retrieved needs an embedder")
+        if technique == "icl_retrieved" and embedder is None and sims is None:
+            raise ValueError("icl_retrieved needs an embedder (or a precomputed similarity matrix)")
         ids = [e.id for e in pool]
         if len(set(ids)) != len(ids):
             raise ValueError("pool example ids must be unique")
         self.technique, self.pool, self.items, self.seed = technique, list(pool), list(items), seed
         self.sims: Optional[np.ndarray] = None
         self.max_cosine: List[Optional[float]] = [None] * len(self.items)
-        if technique == "icl_retrieved":
+        if technique == "icl_retrieved" and sims is not None:
+            # BillSum bm25 / tfidf (src/icl/retrievers.py): scores of every pool item for every item;
+            # `max_cosine` then holds the largest retriever score (not a cosine) and is only descriptive.
+            if sims.shape != (len(self.items), len(self.pool)):
+                raise ValueError(f"sims shape {sims.shape} != ({len(self.items)}, {len(self.pool)})")
+            self.sims = np.asarray(sims)
+            self.max_cosine = [float(r.max()) for r in self.sims]
+        elif technique == "icl_retrieved":
             def unit(m: np.ndarray) -> np.ndarray:
                 nrm = np.linalg.norm(m, axis=1, keepdims=True)
                 nrm[nrm == 0] = 1.0

@@ -65,3 +65,43 @@ class FakeGenerator:
             out.append(Generation(text=text, input_tokens=len(p.system.split()) + len(p.user.split()),
                                   output_tokens=3, finish_reason="stop"))
         return out
+
+
+# ---------------------------------------------------------------- BillSum toys
+
+TOPICS = ("water", "roads", "schools", "tax", "veterans")
+
+
+def toy_billsum_loader():
+    """18,949 short bills ('bill about <topic> <n>') whose gold summary names the topic."""
+    texts, summaries = [], []
+    for j in range(18949):
+        topic = TOPICS[j % len(TOPICS)]
+        texts.append(f"bill about {topic} {topic} act number {j % 13}")
+        summaries.append(f"This bill concerns {topic}")
+    return texts, summaries
+
+
+class FakeSumGenerator:
+    """Writes the gold-style summary when the prompt has at least `min_shots` shots, otherwise an unrelated
+    sentence; `empty_every` makes every i-th output empty; `cap_every` marks every i-th as cut by the cap."""
+    name = "fake-sum"
+
+    def __init__(self, min_shots: int = 2, empty_every: int = 0, cap_every: int = 0):
+        self.min_shots, self.empty_every, self.cap_every = min_shots, empty_every, cap_every
+        self.calls = []
+
+    def generate(self, prompts, max_new_tokens, choices=None):
+        self.calls.append((list(prompts), max_new_tokens, choices))
+        out = []
+        for i, p in enumerate(prompts):
+            query = p.user.rsplit("Document:\n", 1)[1].rsplit("\n\nSummary:", 1)[0]
+            n_shots = p.user.count("Summary:\n")
+            topic = query.split()[2]
+            text = f"This bill concerns {topic}" if n_shots >= self.min_shots else "Nothing relevant is said here"
+            if self.empty_every and i % self.empty_every == 0:
+                text = ""
+            capped = bool(self.cap_every and i % self.cap_every == 0)
+            out.append(Generation(text=text, input_tokens=len(p.user.split()), output_tokens=1024 if capped else 5,
+                                  finish_reason="length" if capped else "stop"))
+        return out
