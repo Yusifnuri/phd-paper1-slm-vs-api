@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-22T16:22:52Z",
+  "banking77": {
+    "dataset": "PolyAI/banking77",
+    "revision": "1846984189f2bc0ac51c6fc3a600fa9e1714e0c6",
+    "split": "test",
+    "n": 3080,
+    "sha256": "bd6cf301e4fa4faeb7d43b1a49df8ec70dc9e39b4d04625eeb7c28a3a0cdcdcf",
+    "hash_definition": "src.train.data.rows_fingerprint over (text, label name) rows in original order"
+  },
+  "billsum": {
+    "dataset": "FiscalNote/billsum",
+    "revision": "3d8510441c06a3d9dfb32eb0d7f80151730bcc4f",
+    "split": "test",
+    "n_full_test": 3269,
+    "subset_seed": 42,
+    "n": 1000,
+    "sha256": "7dd2f47289892df4fafac1ead893afa100db460c86f3998809dc0e5bbef8522c",
+    "indices_sha256": "d8b21ddcf48825a63d857f90b4d0c41840da47615f4cee8a32b354661cbc454c",
+    "hash_definition": "src.train.billsum.rows_hash over (text, summary) rows of the seeded subset, original order",
+    "note": "final_eval's guarded reader loads the default revision; this revision is the one hashed here"
+  },
+  "ledgar": {
+    "status": "PLACEHOLDER_NOT_FROZEN",
+    "n": 3000,
+    "subset_seed": 42,
+    "sha256": null,
+    "role": "exploratory (D-03)",
+    "note": "No LEDGAR loader exists in this repository yet; nothing was downloaded or hashed."
+  }
+}
