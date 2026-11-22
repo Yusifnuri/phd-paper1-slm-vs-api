@@ -38,6 +38,33 @@ class Generator(Protocol):
         (robustness flag only); None means free generation."""
 
 
+def hide_broken_flash_attn() -> bool:
+    """Work around a preinstalled flash_attn built for another torch (observed on the H200 image,
+    2026-11-22: `undefined symbol ... c10_cuda_check_implementation`). vLLM 0.13.0's rotary layer
+    imports flash_attn whenever `find_spec("flash_attn")` is not None, so a broken install aborts
+    model loading. If importing flash_attn fails with ImportError, make `find_spec` report it as
+    absent for this process so vLLM uses its own kernels. Returns True when the workaround is
+    applied; a working flash_attn is left untouched. Nothing on disk is changed."""
+    import importlib.util as iu
+
+    try:
+        import flash_attn  # noqa: F401
+        return False
+    except ImportError:
+        pass
+    except Exception:  # any other import-time failure is equally fatal for vLLM
+        pass
+    original = iu.find_spec
+
+    def find_spec(name, *args, **kwargs):
+        if name == "flash_attn" or name.startswith("flash_attn."):
+            return None
+        return original(name, *args, **kwargs)
+
+    iu.find_spec = find_spec
+    return True
+
+
 class VLLMGenerator:
     """Offline vLLM engine (`vllm.LLM`), imported lazily. Chat template of the model is applied by vLLM."""
 
@@ -53,6 +80,7 @@ class VLLMGenerator:
 
     def _engine(self):
         if self._llm is None:
+            hide_broken_flash_attn()
             from vllm import LLM  # lazy: only the GPU server has it
 
             self._llm = LLM(model=self._model, **self._kw)

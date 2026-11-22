@@ -24,3 +24,21 @@ def test_vllm_generator_is_lazy_and_needs_vllm_only_on_generate():
         except ImportError:
             return
         raise AssertionError("expected ImportError without vllm")
+
+
+def test_hide_broken_flash_attn_patches_find_spec_only_when_import_fails(monkeypatch):
+    import importlib.util as iu
+    import sys
+    import types
+    from src.icl import generate as G
+
+    original = iu.find_spec
+    try:
+        monkeypatch.setitem(sys.modules, "flash_attn", None)  # `import flash_attn` raises ImportError
+        assert G.hide_broken_flash_attn() is True
+        assert iu.find_spec("flash_attn") is None and iu.find_spec("flash_attn.ops") is None
+        assert iu.find_spec("json") is not None  # other modules untouched
+    finally:
+        iu.find_spec = original
+    monkeypatch.setitem(sys.modules, "flash_attn", types.ModuleType("flash_attn"))  # a working install
+    assert G.hide_broken_flash_attn() is False and iu.find_spec is original
