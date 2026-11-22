@@ -17,15 +17,15 @@ Remaining: independent red-team second pass; copy power-simulation code into `an
 Done: wrote and pushed six deliverables (commit 819b639); an independent fresh-agent red-team pass (`agents/06c-independent-redteam.md`, 13 contradictions, 10 ranked issues, verdict: go for Stage 0 and cheap live tests, no go for the campaign, no gate PASS) after finding that the interactive session had written a non-independent `06b`; applied its CRITICAL/HIGH text fixes to protocol, statistical plan, feasibility, foundation, outline and dataset audit; I-25..I-29 and L-19, L-20 added. One review round used; remaining items need evidence, not text.
 Remaining: Stage 0 engineering (merge/tag branches, tuned-procedure code, `analysis/` with power code, `count_requests.py`); pilot gates G1-G7 (GPU); live API tests (H1); H3 credit value/carry-over; H4 Spiegelhalter PDF; independent re-review after the pilot. No GPU or API use.
 
-## 2026-11-22 03:20 +03:00 (interactive session)
+## 2026-11-22 03:07 +03:00 (interactive session; time = commit `284c39f`, corrected)
 Note: the 01:40 scheduled run was still working while the interactive session wrote `06b`; it then wrote the independent pass `06c` (commit `ce04cb5`). Its log entry says "~04:00", but it was committed at 02:50.
 Done: Stage 0 blocker (a), part 1: branches `claude/eval-harness-3f9302`, `claude/api-harness-827c78`, `claude/pilot-train-226845` merged into `main` (no file overlaps; merge commit `1d9a98f`), 148/148 tests pass locally, including the previously skipped FT-vs-API prompt-equality test and the eval-schema test. Not yet done: tag, `git_commit` logging in run records.
 Spiegelhalter, Franke, Hutter 2026 [V, neurips.cc/virtual/2026/170044, read 2026-11-22]: a **workshop poster** (On-Device Intelligence workshop, NeurIPS 2026), not a main-track paper. Abstract: 17 narrow tasks, Qwen3 0.6B/1.7B/4B, ICL (3 selection strategies) vs LoRA with per-task HPO vs GEPA, budgets up to 200 labelled samples, crossover at about 50 samples, two-component cost analysis in which data availability rather than volume drives the cost-optimal method. No commercial API arm is mentioned in the abstract. Full text: OpenReview returns 403 to scripts and shows a browser check in the built-in browser; the researcher has to pass it (H4 still open).
 
-## 2026-11-22 03:40 +03:00 (interactive session)
+## 2026-11-22 03:19 +03:00 (interactive session; time = commit `5dbaf0d`, corrected)
 H4 closed: the researcher downloaded the Spiegelhalter et al. 2026 PDF; full-text notes in `docs/research/spiegelhalter-2026-notes.md`; L-21 logged; register, human decisions and novelty file updated. Core gap holds; "tuning cost charged" dropped as a distinguishing claim. Remaining: tuned-procedure code, power code into `analysis/`, request-count script, pilot (GPU), live API tests (H1), H3.
 
-## 2026-11-22 04:10 +03:00 (interactive session)
+## 2026-11-22 03:26 +03:00 (interactive session; time = commit `d313943`, corrected)
 Stage 0 blocker (c), tuned-procedure code, written (offline-tested only, NOT yet run on a GPU):
 - `src/train/tuning.py`: replicate seeds (pool r, train 100+r), E_max (10 below N=3,000, else 5), val(N)=min(1,000, N), five checkpoints, early stopping patience 2 (accuracy, loss tie-break; loss for summarisation), best-checkpoint selection with grid-edge flag (G5), write-once `frozen_arms.json` (conflict on re-freeze).
 - `src/train/train.py`: in-run checkpoint evaluation replaces the old retrain-per-(lr, epochs) `select_trials` (A5-12); `--tune` (replicate 0 only) runs one trial per lr and freezes (lr, schedule length, stop step); final runs with `--frozen-arms` train the same cosine schedule and stop at the frozen step; refuses replicate 0 and a batch/S_min mismatch; GPU memory released between trials; tuning GPU seconds logged for cost-per-correct.
@@ -33,7 +33,7 @@ Stage 0 blocker (c), tuned-procedure code, written (offline-tested only, NOT yet
 - `scripts/run_pilot.py` no longer forwards `--tune` (old procedure removed).
 Tests: 164/164 pass locally (18 new in `tests/train/test_tuning.py`). Still missing for the pilot: kNN baseline with pinned bge-small (G2/G3), the `?` normaliser fix check, a tag, copying the code to the server.
 
-## 2026-11-22 04:40 +03:00 (interactive session)
+## 2026-11-22 03:32 +03:00 (interactive session; time = commit `f533926`, corrected)
 Stage 0 blocker (d), kNN baseline, written (offline-tested only; never run on the real embedder or data):
 - `src/baselines/knn.py`: similarity-weighted kNN over the N-pool (weight max(cosine, 0); ties: more neighbours, then nearest), k in {1, 5, 16} chosen on val(N) of replicate 0 and frozen in `frozen_arms.json`, finals on the full 1,000-row validation of replicates >= 1, prediction records with the new schema arm `baseline`.
 - Embedder pinned: `BAAI/bge-small-en-v1.5` revision `5c38ec7c405ec4b44b94cc5a9bb96e735b38267a` (Hub API, 2026-11-22, licence mit) as the default of `SentenceTransformerEmbedder`, so the API arm's retrieval is pinned too.
@@ -41,6 +41,8 @@ Stage 0 blocker (d), kNN baseline, written (offline-tested only; never run on th
 Tests: 172/172 pass. Server note: `sentence-transformers` is not known to be installed on the H200; installing it with dependencies could upgrade torch, so use `pip install --no-deps sentence-transformers==6.3.0` and check `import sentence_transformers` (or run the kNN steps on the Mac and copy `results.jsonl`).
 Pilot prerequisites still open: tag a commit, copy the code to the server, start the server (researcher).
 
-## 2026-11-22 05:00 +03:00 (interactive session, server on)
+## 2026-11-22 03:47 +03:00 (interactive session, server on; time = commit `2d47e39`, corrected)
 Server restarted; host key verified by the researcher against the portal terminal (`SHA256:m7gsbafcg26N8HRozUOLaNc7QpsqBhe2m7n/fbKwH4w`) before replacing it. Image ships torch 2.9.0+cu128, transformers 4.57.3, peft 0.18.0, datasets 4.4.1, sentence-transformers 5.2.0 (not the 6.3.0 pin of `requirements/api.txt`; recorded, not changed). Code at tag `pilot-stage2-code` (`f533926`) copied to `~/vault/Defaukt/paper1/code-f533926…`, symlinked as `~/paper1`; `~/vault/Defaukt/paper1/env.sh` sets venv, persistent `HF_HUB_CACHE`/`HF_DATASETS_CACHE` in the vault, `PYTHONUTF8`, `GIT_COMMIT`. Server tests: 169 pass, 3 skipped (seqeval/ROUGE not installed). GPU smoke (10 steps, 32 val items): kNN tune+final, FT tune (4 trials, early stop, freeze) and frozen final all ran; peak 53 GB.
-Stage 2 pilot started about 04:55 +03:00 (`runs/stage2/stage2.log`, prints `STAGE2_DONE`), adapters to `yusifnuri/paper1-pilot-adapters`. kNN validation accuracy (exploratory): N=1,000 random r1 0.840, r2 0.844.
+Stage 2 pilot started about 03:47 +03:00 (log timestamps UTC: 00:47) (`runs/stage2/stage2.log`, prints `STAGE2_DONE`), adapters to `yusifnuri/paper1-pilot-adapters`. kNN validation accuracy (exploratory): N=1,000 random r1 0.840, r2 0.844.
+
+Correction (04:06 +03:00): the headings of the five interactive entries above (and the pilot start time) were first written with guessed clock times, later than the real ones; they now use the commit times, which are the only timestamps I can verify. The entry marked `~04:00` by the scheduled run is that run's own claim; its commit `ce04cb5` is at 02:50.
