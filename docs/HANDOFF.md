@@ -1,4 +1,19 @@
-# CURRENT STATE: read this first (written 2026-11-22 ~16:00 Istanbul, supersedes the older sections below where they disagree)
+# CURRENT STATE: read this first (written 2026-11-27, supersedes every older section below where they disagree)
+
+**To resume in a new chat, say:** "Read docs/HANDOFF.md (first section) and docs/SESSION_RECORD_2026-11-22_to_27.md, then docs/foundation/DECISION_LOG.md (L-33 onward) and docs/foundation/agents/06d-independent-redteam.md, then continue." Then check `git status`, `git log --oneline -8` and verify before claiming anything is done.
+
+The rules, the study summary and the server quick start in the 2026-11-22 section below are still binding. What changed since then:
+
+- **Independent review 06d (2026-11-23): the pre-registration is NOT safe to freeze yet** (L-39). Top blockers: no code writes a test result for any arm; hypotheses assume an API arm that does not exist yet and the text is stale; BillSum arms use different selection criteria and its loss curve is flat; training is not reproducible and the retry rule must be tightened; "equal effort" is overstated; H2 and H4 can hardly fail; the tag needs an external timestamp (researcher).
+- **Code added on 22 Nov (not yet run on a GPU):** BillSum generation + ROUGE-L, BillSum local-ICL runner and retriever comparison, guarded test-read entry point + ledger + test fingerprints (`results/test_split_fingerprint.json`), blinded variance script, contrast builder, report tables. 325 tests passed at `0cecc45`.
+- **Deliverables for the researcher:** slides (https://claude.ai/artifact/MwUuwwyMXeN3dRdxwrkPuo), proposal doc (https://claude.ai/artifact/JMEtaKJsjH6Z3ycAssxkgr), institute-form proposal for course BYL625 in `docs/proposal/` (not committed; blank student number, name spelling and sub-field to be checked).
+- **API arm (latest, 27 Nov):** keys will come; the researcher wants the **Flash tier** and asked about a **$15** budget. Prices: `docs/research/2026-11-27-gemini-prices.md`. Recommendation awaiting approval: `gemini-3.1-flash-lite`, BANKING77 only, R=5, batch, $5 live test first. Open question: Flash-Lite or full Flash. No key has been created or used; nothing spent. If approved, rewrite H3 and the contrast family (single pre-chosen API, none on BillSum) before the freeze.
+- **GPU server:** off. No background or scheduled jobs.
+- **Next work (no GPU):** the 06d must-fix list (section 6 of the session record), starting with the test-evaluation path through `src/final/final_eval`.
+
+---
+
+# Earlier state (2026-11-22 ~16:00; rules, study summary and server quick start still apply)
 
 **How to resume after a context compaction or in a new chat:** say "Read docs/HANDOFF.md (the first section), docs/foundation/PROGRESS.md (the last 6 entries), docs/foundation/DECISION_LOG.md (L-21 onward), docs/foundation/PREREG_DECISIONS.md, then continue." Then run `git status`, `git log --oneline -8`, check the server (below) and verify before claiming anything is done.
 
