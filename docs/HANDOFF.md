@@ -2,6 +2,7 @@
 
 - **All local (no GPU, no API) items of review 06d are done**; see `PREREGISTRATION.md` section 16.7 for what remains by owner. Not frozen, no tag.
 - **Next: a GPU session** (the researcher opens the server): (1) `python -m src.final.run_final dry-run ...` on real data for one arm of each kind; (2) `scripts/repeat_runs.py` three times at BANKING77 N=200 and N=1,000; (3) BillSum validation generation pilot (`--tune` now selects by ROUGE-L, unrun on a GPU). Deploy with `git bundle` + `git clone`, not `git archive`: `final_eval` and the dry run need git. Arms must be frozen and adapters trained with the current `train.py` (it writes `run_manifest.json`).
+- **Researcher decisions of 28 Nov (L-43):** H2/H4/RQ2 confirmed, OSF registration (not yet made), no human study. Open with them: a line-by-line reading of PREREG sections 3 and 17 before the freeze (approval was given in chat), D-19 (GPU credit carry-over), D-21, rest of D-18, checking `docs/proposal/`.
 - **API work comes last** (researcher's instruction, 28 Nov).
 - Check `git log` for what is committed.
 

@@ -14,10 +14,10 @@
 | Field | Value |
 |---|---|
 | Working title | When does a tuned 4B model beat a low-cost API with retrieval? Equal-pool accuracy and cost on BANKING77 and BillSum (`PAPER_OUTLINE.md`) |
-| Author, affiliation, funding | researcher (D-18, stays open) |
+| Author, affiliation, funding | researcher (D-18, this part stays open) |
 | Draft date / protocol-tag date / arms-tag dates | draft 2026-11-22 / no date set / no dates set. The calendar of `FEAS` s.4 (protocol tag Dec 6-12, arms tag Dec 13-19) predates the two-stage freeze (tag A for fine-tuned, kNN and local ICL arms; tag B for the API arm, D-08, L-30) and the funding answer (L-32: tag B cannot be created now). Dates are re-planned when the researcher decides the API route (`PC-14`, `PC-29`) |
 | Code commit and tag | Not yet set (researcher). Pilot code tags: `pilot-stage2-code` (`f533926`, stage 2), `pilot-stage2b-code` (`ce0dd2a`, rerun and session 2), `session3-code` (`12ec11f`, session 3) [`PROGRESS.md`, `HANDOFF.md`]. The protocol tag must point to a commit containing the frozen analysis scripts |
-| Registry | None. Whether to copy the frozen file to OSF is the researcher's choice (D-18, stays open) |
+| Registry | OSF (researcher, 2026-11-28, L-43): the frozen file is registered there before any test read. Not yet done |
 
 ## 2. Research questions
 
@@ -52,7 +52,7 @@ A third, hybrid possibility (a small API arm on a subset of cells) would need it
 
 ## 3. Hypotheses
 
-Each hypothesis is tied to confirmatory contrasts (section 9) and states what outcome would **refute** it. Directions are the drafting proposal derived from the cited sentences and are not results; D-01 accepts H1-H4 as drafted (they state outcomes that can fail, and a null or reversed result is publishable, L-01); the researcher can still overrule them before the tag. **H2, H4 and the scope of H3 were rewritten on 2026-11-28 (L-42) so that they can fail; the assistant wrote them under delegation and the researcher has not yet confirmed them.** **All four are stated against the commercial API arm and exist only in variant A (section 2.1).** "Contrast" means delta = accuracy(best-validation fine-tuned configuration) minus accuracy(best-validation retrieval-ICL configuration of GPT-6 Luna, the confirmatory API, L-41) on the test items, conditional on the frozen arms (section 9). Outcome labels (i)/(ii)/(iii) are defined in section 9.4.
+Each hypothesis is tied to confirmatory contrasts (section 9) and states what outcome would **refute** it. Directions are the drafting proposal derived from the cited sentences and are not results; D-01 accepts H1-H4 as drafted (they state outcomes that can fail, and a null or reversed result is publishable, L-01); the researcher can still overrule them before the tag. **H2, H4 and the scope of H3 were rewritten on 2026-11-28 (L-42) so that they can fail; the assistant wrote them under delegation and the researcher confirmed them, with RQ2 as descriptive, on 2026-11-28 (L-43).** **All four are stated against the commercial API arm and exist only in variant A (section 2.1).** "Contrast" means delta = accuracy(best-validation fine-tuned configuration) minus accuracy(best-validation retrieval-ICL configuration of GPT-6 Luna, the confirmatory API, L-41) on the test items, conditional on the frozen arms (section 9). Outcome labels (i)/(ii)/(iii) are defined in section 9.4.
 
 | ID | Statement | Cells | Supported if | Fails if |
 |---|---|---|---|---|
@@ -368,11 +368,11 @@ Stage 1 loss diagnostics (Phi first-step loss 18.88, OLMo DoRA NaN; I-14) not ru
 
 **Needs the API arm (last):** API test path and dry run, k grid and request count (`PC-33`), live test, tag-B addendum.
 
-**Needs the researcher:** reading and initialling this text and the assistant-made decisions; registry or other external timestamp (D-18); D-13, D-19, D-21; the independent re-review of this text if wanted (the review 06d read an earlier version). If G1-G7 cannot be passed after two fix cycles, the outcome is *re-scope* and this pre-registration is rewritten, not tagged [`PROT` s.8].
+**Needs the researcher:** reading and initialling this text and the assistant-made decisions; making the OSF registration (D-18); D-19, D-21, the rest of D-18; the independent re-review of this text if wanted (the review 06d read an earlier version). If G1-G7 cannot be passed after two fix cycles, the outcome is *re-scope* and this pre-registration is rewritten, not tagged [`PROT` s.8].
 
 ## 17. Decisions on the former `[TO DECIDE BEFORE FREEZE]` items
 
-All 21 items now carry a decision. Sixteen were decided by the assistant under the researcher's explicit delegation on 2026-11-22 (`PD`, L-28), with three stated researcher preferences (five tuning trials per system, 1,000 validation examples, a batch-based API budget); the researcher can overrule any of them before the protocol tag. **Five stay open with the researcher** (D-13, D-16, D-18, D-19, D-21). "Open" in the last column means an issue is flagged in `PREREG_CONSISTENCY.md` section F, not that the decision was changed.
+Update 2026-11-28 (L-43): D-13 and the registry part of D-18 are decided. All 21 items now carry a decision. Sixteen were decided by the assistant under the researcher's explicit delegation on 2026-11-22 (`PD`, L-28), with three stated researcher preferences (five tuning trials per system, 1,000 validation examples, a batch-based API budget); the researcher can overrule any of them before the protocol tag. **Five stay open with the researcher** (D-13, D-16, D-18, D-19, D-21). "Open" in the last column means an issue is flagged in `PREREG_CONSISTENCY.md` section F, not that the decision was changed.
 
 | ID | Item | Decision (`PD`) | Status / owner | Flag |
 |---|---|---|---|---|
@@ -388,12 +388,12 @@ All 21 items now carry a decision. Sixteen were decided by the assistant under t
 | D-10 | R-extension trigger | BANKING77 only: extend 8 to at most 10 if power for 3 points is below 80% at N=1,000 or N=3,000; N=200 excluded | decided | |
 | D-11 | Outcome labels | Holm-adjusted test decides; descriptive flags never override; unadjusted intervals labelled; "equivalent" never used | decided | |
 | D-12 | "Underpowered a priori" | computed once from replicate-0 validation estimates after API validation runs exist; until then N=200 is a bracket by rule; BillSum 2-point threshold dropped, realised half-width reported | decided | needs API validation runs, unfunded (`PC-29`) |
-| D-13 | Human faithfulness study | not done unless the researcher names an annotator; default ROUGE-L and BERTScore, exploratory, limitation stated | **researcher** (annotator, HD-2) | |
+| D-13 | Human faithfulness study | **not done** (researcher, 2026-11-28, L-43): BillSum quality = ROUGE-L and BERTScore, exploratory, limitation stated; no quality or faithfulness claim | decided | |
 | D-14 | API budget mode | batch-based (researcher's preference, L-27): batch for BANKING77 and, where queue limits allow, BillSum; sync as the fallback; 72-hour window from first to last request of a provider's confirmatory cells, batch counted by submission time; sync-all is the stress case | decided; budget re-estimated in section 12 (L-41) | `PC-35`; no key yet |
 | D-15 | Replicate failure | two retries with the same seed; then the next unused replicate number; the number replaced is reported; never depends on a metric | decided | `PC-40` |
 | D-16 | API model ids, snapshot dates, SDK and price-page versions | recorded at the first live call | **researcher** (keys) | no live call exists |
 | D-17 | Stochastic API arm in the crossed model | item-level mean of its two full runs (0, 0.5, 1), flip rate reported | decided | |
-| D-18 | Authors, affiliation, funding, data-availability statement, registry | personal information | **researcher** | |
+| D-18 | Authors, affiliation, funding, data-availability statement, registry | registry: OSF (L-43); the other items are personal information and still open | **researcher** (all but the registry) | |
 | D-19 | Credit-to-dollar value and carry-over of the GPU allowance | imputed rate band $3.6-6.0/h stays a scenario | **researcher**: the value part is answered (the credits carry no dollar value, L-32); carry-over is still unknown | |
 | D-20 | Independent re-review before the tag | a fresh reviewer re-reads the final protocol text and the pilot results; the assistant starts it | decided; review open | gate 8 not passed |
 | D-21 | Provider terms and dataset licences | confirmation after the runs, before any release of predictions or adapters; no release before that | **researcher** | |
@@ -409,7 +409,7 @@ All 21 items now carry a decision. Sixteen were decided by the assistant under t
 | 11-12 | `STAT` s.5-7; `FEAS` s.1-3; L-10 |
 | 13-14 | `PROT` s.5-7; `FEAS` s.5 |
 | 16 | `results/pilot-stage2-2026-11-22/`, `pilot-stage2b-2026-11-22/`, `pilot-session3-2026-11-22/`; `PROGRESS.md`; `PROT` s.8 |
-| 17 | `PREREG_DECISIONS.md` (D-01..D-21); `DECISION_LOG.md` L-25..L-32, L-41, L-42 |
+| 17 | `PREREG_DECISIONS.md` (D-01..D-21); `DECISION_LOG.md` L-25..L-32, L-41..L-43 |
 
 ## Appendix B. Superseded content of the draft of 2026-11-21
 

@@ -28,6 +28,8 @@ Taken 2026-11-22 by the assistant under the researcher's explicit delegation ("m
 
 **Update 2026-11-27 (L-41):** D-08 and D-14 now apply to two API arms fixed in advance (GPT-6 Luna confirmatory, Claude Haiku 5.5 secondary). The three-provider cost ranges quoted in D-14 are superseded by section 12 of `PREREGISTRATION.md`.
 
+**Update 2026-11-28 (L-43), researcher:** D-13 decided, no human study. D-18: the registry is OSF; authors, affiliation, funding and data-availability statement stay open.
+
 ## Consequences that need work
 
 1. Freeze script for BillSum and LEDGAR fingerprints (D-03), the blinded variance script (D-09), the independent review (D-20): assistant, no GPU, before the tag.
