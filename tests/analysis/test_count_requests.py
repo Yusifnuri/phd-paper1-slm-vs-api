@@ -19,19 +19,20 @@ def test_banking77_matches_a3_and_protocol():
     rows = cr.table()
     assert row(rows, "banking77", "selected")["total"] == 106_128   # A3, protocol section 3
     assert row(rows, "banking77", "other")["total"] == 50_688       # A3 and A5
-    assert cr.totals(rows)["banking77"] == 207_504                  # protocol section 3
+    assert cr.totals(rows)["banking77"] == 156_816                  # L-41: confirmatory + one secondary
+    assert cr.totals(rows, n_other=2)["banking77"] == 207_504       # earlier three-provider plan
 
 
 def test_billsum_default_is_a5_reading_with_protocol_validation_size():
     rows = cr.table()
     assert row(rows, "billsum", "selected")["total"] == 28_400      # A5 (validation min(1000, N), random-k)
     assert row(rows, "billsum", "other")["total"] == 19_400         # A5 22,400 minus random-k (3,000)
-    assert cr.totals(rows)["billsum"] == 67_200
+    assert cr.totals(rows)["billsum"] == 47_800
 
 
 def test_billsum_alternative_readings_explain_the_disagreement():
     a5 = cr.table(random_k_other=True)
-    assert row(a5, "billsum", "other")["total"] == 22_400 and cr.totals(a5)["billsum"] == 73_200
+    assert row(a5, "billsum", "other")["total"] == 22_400 and cr.totals(a5, n_other=2)["billsum"] == 73_200
     a3 = cr.table(billsum_val=300)
     # A3 used 300 validation items at every N (3,600 per provider); the formula caps at N (3,200)
     assert row(a3, "billsum", "selected")["validation"] == 3_200

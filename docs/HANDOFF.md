@@ -1,4 +1,13 @@
-# CURRENT STATE: read this first (written 2026-11-27, supersedes every older section below where they disagree)
+# CURRENT STATE (2026-11-28, L-42): read this first
+
+- **All local (no GPU, no API) items of review 06d are done**; see `PREREGISTRATION.md` section 16.7 for what remains by owner. Not frozen, no tag.
+- **Next: a GPU session** (the researcher opens the server): (1) `python -m src.final.run_final dry-run ...` on real data for one arm of each kind; (2) `scripts/repeat_runs.py` three times at BANKING77 N=200 and N=1,000; (3) BillSum validation generation pilot (`--tune` now selects by ROUGE-L, unrun on a GPU). Deploy with `git bundle` + `git clone`, not `git archive`: `final_eval` and the dry run need git. Arms must be frozen and adapters trained with the current `train.py` (it writes `run_manifest.json`).
+- **API work comes last** (researcher's instruction, 28 Nov).
+- Check `git log` for what is committed.
+
+---
+
+# State of 2026-11-27 (written 2026-11-27, supersedes every older section below where they disagree)
 
 **To resume in a new chat, say:** "Read docs/HANDOFF.md (first section) and docs/SESSION_RECORD_2026-11-22_to_27.md, then docs/foundation/DECISION_LOG.md (L-33 onward) and docs/foundation/agents/06d-independent-redteam.md, then continue." Then check `git status`, `git log --oneline -8` and verify before claiming anything is done.
 
@@ -7,7 +16,7 @@ The rules, the study summary and the server quick start in the 2026-11-22 sectio
 - **Independent review 06d (2026-11-23): the pre-registration is NOT safe to freeze yet** (L-39). Top blockers: no code writes a test result for any arm; hypotheses assume an API arm that does not exist yet and the text is stale; BillSum arms use different selection criteria and its loss curve is flat; training is not reproducible and the retry rule must be tightened; "equal effort" is overstated; H2 and H4 can hardly fail; the tag needs an external timestamp (researcher).
 - **Code added on 22 Nov (not yet run on a GPU):** BillSum generation + ROUGE-L, BillSum local-ICL runner and retriever comparison, guarded test-read entry point + ledger + test fingerprints (`results/test_split_fingerprint.json`), blinded variance script, contrast builder, report tables. 325 tests passed at `0cecc45`.
 - **Deliverables for the researcher:** slides (https://claude.ai/artifact/MwUuwwyMXeN3dRdxwrkPuo), proposal doc (https://claude.ai/artifact/JMEtaKJsjH6Z3ycAssxkgr), institute-form proposal for course BYL625 in `docs/proposal/` (not committed; blank student number, name spelling and sub-field to be checked).
-- **API arm (latest, 27 Nov):** keys will come; the researcher wants the **Flash tier** and asked about a **$15** budget. Prices: `docs/research/2026-11-27-gemini-prices.md`. Recommendation awaiting approval: `gemini-3.1-flash-lite`, BANKING77 only, R=5, batch, $5 live test first. Open question: Flash-Lite or full Flash. No key has been created or used; nothing spent. If approved, rewrite H3 and the contrast family (single pre-chosen API, none on BillSum) before the freeze.
+- **API arm (decided 27 Nov, L-41):** GPT-6 Luna confirmatory on both tasks (R=8 / 5), Claude Haiku 5.5 secondary on both (R=3), Gemini removed; providers fixed in advance. 204,616 requests, estimated $30-39 for one run per cell, up to about $16-21 more if stochastic arms need second runs; suggested cap $40, confirmed at key creation. `PREREGISTRATION.md`, `count_requests.py` and `configs/api_models.yaml` updated. No key created or used; nothing spent. `count_requests.py` still assumes 4 k values (`PC-33`).
 - **GPU server:** off. No background or scheduled jobs.
 - **Next work (no GPU):** the 06d must-fix list (section 6 of the session record), starting with the test-evaluation path through `src/final/final_eval`.
 

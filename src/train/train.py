@@ -236,6 +236,17 @@ def _build_model(spec: ModelSpec, cfg: TrainConfig):
     return model, time.perf_counter() - t0, sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
+def _snapshot_adapter(model) -> Dict[str, Any]:
+    """CPU copy of the adapter weights (summarisation tuning keeps the best-loss checkpoint)."""
+    from peft import get_peft_model_state_dict
+    return {k: v.detach().cpu().clone() for k, v in get_peft_model_state_dict(model).items()}
+
+
+def _restore_adapter(model, state: Dict[str, Any]) -> None:
+    from peft import set_peft_model_state_dict
+    set_peft_model_state_dict(model, state)
+
+
 def _release_gpu() -> None:
     """Call after the caller has deleted its last reference to the model."""
     import torch
@@ -297,6 +308,14 @@ def run(cfg: TrainConfig, prep=None, selection: Optional[Dict[str, Any]] = None)
 
     ckpt = Path(cfg.checkpoint_dir) / rid
     model.save_pretrained(ckpt)
+    # Binds the saved adapter to its frozen arm and pool; src/final/run_final.py checks it.
+    (ckpt / "run_manifest.json").parent.mkdir(parents=True, exist_ok=True)
+    (ckpt / "run_manifest.json").write_text(json.dumps({
+        "run_id": rid, "model": spec.hf_id, "task": cfg.task, "technique": cfg.technique, "n": cfg.n,
+        "replicate": cfg.replicate, "pool_hash": data.indices_hash(pool),
+        "arm_key": arm_info["arm_key"] if arm_info else None, "arm": arm_info["arm"] if arm_info else None,
+        "stop_step": cfg.stop_step, "git_commit": env.git_commit(),
+    }, sort_keys=True), encoding="utf-8")
 
     ev = None
     if not is_sum:
@@ -399,7 +418,8 @@ def tune(cfg: TrainConfig) -> Dict[str, Any]:
         raise tuning.FrozenArmConflict(f"{key} is already frozen in {cfg.frozen_arms}")
 
     is_sum = cfg.task == "billsum"
-    metric = "loss" if is_sum else "accuracy"  # summarisation: validation loss only (L-10, protocol)
+    # summarisation: loss stops a trial, ROUGE-L of generated summaries picks the winner (L-42)
+    metric, stop_metric = ("rouge_l", "loss") if is_sum else ("accuracy", "accuracy")
     pool = splits.pool(cfg.n)
     val = list(splits.val)[: tuning.val_size(cfg.n, cfg.val_cap)]
     if cfg.eval_limit:
@@ -410,7 +430,9 @@ def tune(cfg: TrainConfig) -> Dict[str, Any]:
     stop_ids = [] if is_sum else _stop_ids(tok, labels_all)
     vbatch = cfg.micro if is_sum else 32
     sched = cfg.max_steps or tuning.schedule_steps(cfg.n, cfg.batch, cfg.s_min)
-    cks = tuning.checkpoint_steps(sched)
+    cks = tuning.checkpoint_steps(sched, early=tuning.EARLY_CHECKPOINT_FRACTION if is_sum else None)
+    gen_val = val[: cfg.gen_limit] if is_sum and cfg.gen_limit else val  # gen_limit: smoke mode
+    sum_stop_ids = summarise.summary_stop_ids(tok, labels_all) if is_sum else []
     grid = lr_grid(cfg.technique)
     rid = run_id(spec.hf_id, cfg.technique, cfg.n, cfg.seed, cfg.pool_seed, cfg.sampling, cfg.task) + "__tune"
     print(f"[tune] {rid} metric={metric} grid={list(grid)} schedule={sched} checkpoints={cks} val={len(val)}", flush=True)
@@ -419,7 +441,8 @@ def tune(cfg: TrainConfig) -> Dict[str, Any]:
     for lr in grid:
         c = dataclasses.replace(cfg, lr=lr, schedule_total=sched, stop_step=None)
         model, load_s, _ = _build_model(spec, c)
-        stopper, log = tuning.EarlyStopper(metric), []
+        stopper, log = tuning.EarlyStopper(stop_metric), []
+        best: Dict[str, Any] = {}  # summarisation: best-loss checkpoint of this trial and its weights
 
         def on_checkpoint(step: int) -> bool:
             ck = {"step": step, "epoch": step / c.steps_per_epoch(), "accuracy": None, "n_unparseable": None,
@@ -430,6 +453,8 @@ def tune(cfg: TrainConfig) -> Dict[str, Any]:
                               batch_size=c.eval_batch, max_new_tokens=c.max_new_tokens)
                 ck.update(accuracy=ev["accuracy"], n_unparseable=ev["n_unparseable"])
             log.append(ck)
+            if is_sum and (not best or tuning.score(ck, "loss") > tuning.score(best["ck"], "loss")):
+                best.update(ck=ck, state=_snapshot_adapter(model))
             stop = stopper.update(ck)
             shown = f"acc={ck['accuracy']:.4f} " if ck["accuracy"] is not None else ""
             print(f"[tune] lr={lr:g} step={step} {shown}loss={ck['val_loss']:.4f}"
@@ -440,8 +465,18 @@ def tune(cfg: TrainConfig) -> Dict[str, Any]:
             stats, status = train_loop(model, examples, c, pad_id, cks, on_checkpoint), "ok"
         except FloatingPointError as e:  # a diverged trial is kept in the log and never wins
             stats, status = {"error": safe_error(e)}, "nonfinite"
+        gen_seconds = 0.0
+        if is_sum and status == "ok" and best:
+            _restore_adapter(model, best["state"])
+            sev = summarise.evaluate_summaries(
+                model, tok, run_id=rid, system=spec.hf_id, technique=c.technique, n=c.n, seed=c.seed,
+                items=[(i, texts[i], labels_all[i]) for i in gen_val], stop_ids=sum_stop_ids,
+                pad_id=pad_id, batch_size=cfg.gen_batch, max_new_tokens=billsum.MAX_NEW_TOKENS)
+            best["ck"].update(rouge_l=sev["rouge_l"], n_unparseable=sev["n_unparseable"])
+            gen_seconds = sev["eval_seconds"]
+            print(f"[tune] lr={lr:g} step={best['ck']['step']} rougeL={sev['rouge_l']:.4f}", flush=True)
         trials.append({
-            "lr": lr, "schedule_steps": sched, "status": status, "checkpoints": log,
+            "lr": lr, "generation_seconds": gen_seconds, "schedule_steps": sched, "status": status, "checkpoints": log,
             "load_seconds": load_s,
             **{k: stats.get(k) for k in ("train_seconds", "checkpoint_seconds", "steps", "early_stopped",
                                          "first_train_loss", "final_train_loss", "peak_mem_bytes", "error")},
@@ -454,12 +489,12 @@ def tune(cfg: TrainConfig) -> Dict[str, Any]:
         **sel, "lr_grid": list(grid), "effective_batch": cfg.batch, "s_min": cfg.s_min,
         "tuning_replicate": tuning.TUNING_REPLICATE, "pool_seed": cfg.pool_seed, "train_seed": cfg.seed,
         "pool_hash": data.indices_hash(pool), "val_size": len(val), "val_hash": data.indices_hash(val),
-        "task": cfg.task, "dropped_over_cap": dropped, "max_length": cfg.max_length,
+        "task": cfg.task, "gen_size": len(gen_val) if is_sum else None, "dropped_over_cap": dropped, "max_length": cfg.max_length,
         "git_commit": env.git_commit(), "timestamp_utc": env.utc_now(),
     }
     sha = tuning.freeze_arm(cfg.frozen_arms, key, entry)
     gpu_seconds = sum((t.get("train_seconds") or 0) + (t.get("checkpoint_seconds") or 0)
-                      + (t.get("load_seconds") or 0) for t in trials)
+                      + (t.get("load_seconds") or 0) + (t.get("generation_seconds") or 0) for t in trials)
     record = {
         "status": "tuned", "run_id": rid, "model": spec.hf_id, "model_key": spec.key,
         "technique": cfg.technique, "n": cfg.n, "seed": cfg.seed, "pool_seed": cfg.pool_seed,
@@ -468,8 +503,8 @@ def tune(cfg: TrainConfig) -> Dict[str, Any]:
         "tuning_gpu_seconds": gpu_seconds, **env.gpu_info(), "libs": env.lib_versions(),
     }
     _append(cfg.results, record)
-    score = (f"val_acc={sel['val_accuracy']:.4f}" if sel["val_accuracy"] is not None
-             else f"val_loss={sel['val_loss']:.4f}")
+    score = (f"val_rouge_l={sel['val_rouge_l']:.4f}" if is_sum
+             else f"val_acc={sel['val_accuracy']:.4f}")
     print(f"[tune] frozen {key}: lr={sel['lr']:g} stop_step={sel['stop_step']} "
           f"(epochs* {sel['epochs_star']:.2f}) {score} edge={sel['at_grid_edge']}", flush=True)
     return record

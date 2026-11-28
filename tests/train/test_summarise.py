@@ -277,3 +277,35 @@ def test_billsum_run_with_gen_eval_limit_writes_rouge_records(monkeypatch, tmp_p
     assert len(lines) == 6 and lines[0]["extra"]["pool_seed"] == 1 and lines[0]["extra"]["rouge_l"] == pytest.approx(1.0)
     schema = pytest.importorskip("src.eval.schema")
     schema.check_run_consistency([schema.PredictionRecord.from_dict(x) for x in lines])
+
+
+def test_billsum_tuning_stops_on_loss_and_selects_on_rouge_l(monkeypatch, tmp_path):
+    """The lr with the worse loss but the better summaries wins; only one checkpoint per trial is generated."""
+    prep = _patch_run(monkeypatch, tmp_path, "billsum")
+    monkeypatch.setattr(train, "_prepare", lambda cfg: prep)
+    state = {}
+    monkeypatch.setattr(train, "_build_model", lambda spec, cfg: (state.update(lr=cfg.lr) or SaveModel([1]), 0.1, 7))
+    monkeypatch.setattr(train, "_snapshot_adapter", lambda m: {"lr": state["lr"]})
+    monkeypatch.setattr(train, "_restore_adapter", lambda m, s: None)
+
+    def loop(model, examples, cfg, pad_id, cks, on_checkpoint):
+        for step in cks:
+            if on_checkpoint(step):
+                break
+        return {"train_seconds": 1.0}
+
+    monkeypatch.setattr(train, "train_loop", loop)
+    monkeypatch.setattr(train, "val_loss", lambda *a, **k: state["lr"])  # smallest lr has the best loss
+    generated = []
+
+    def fake_sum(model, tok, **kw):
+        generated.append(state["lr"])
+        return {"rouge_l": state["lr"] * 100, "n_unparseable": 0, "eval_seconds": 1.0}
+
+    monkeypatch.setattr(summarise, "evaluate_summaries", fake_sum)
+    rec = train.tune(TrainConfig(model="qwen3-4b", task="billsum", n=200, replicate=0, tune=True,
+                                 frozen_arms=str(tmp_path / "fa.json"), results=str(tmp_path / "r.jsonl")))
+    sel = rec["selection"]
+    assert sel["metric"] == "rouge_l" and sel["lr"] == 8e-4 and sel["val_rouge_l"] == pytest.approx(0.08)
+    assert len(generated) == 5 and sel["stop_at_first_checkpoint"] is True and sel["gen_size"] == 200
+    assert sel["stop_step"] == 20  # the early checkpoint at 10% of the 200-step schedule

@@ -31,6 +31,8 @@ from . import task_spec
 from .task_spec import BANKING77_LABELS, TASK, build_messages  # noqa: F401
 
 DATASET_ID = "PolyAI/banking77"
+# Pinned dataset revision, the one hashed in results/test_split_fingerprint.json (L-42).
+REVISION = "1846984189f2bc0ac51c6fc3a600fa9e1714e0c6"
 DATA_SEED = 42  # default pool seed
 VAL_SEED = 42
 VAL_SIZE = 1000
@@ -101,7 +103,7 @@ def load_train_split() -> Tuple[List[str], List[str]]:
     """Load ONLY the train split from the Hub. Returns (texts, label names per row)."""
     from datasets import load_dataset  # lazy: not needed for offline tests
 
-    ds = load_dataset(DATASET_ID, split="train")
+    ds = load_dataset(DATASET_ID, split="train", revision=REVISION)
     names = ds.features["label"].names
     if list(names) != BANKING77_LABELS:
         raise RuntimeError("dataset label names differ from task_spec.BANKING77_LABELS")

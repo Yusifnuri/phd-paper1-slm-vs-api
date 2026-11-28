@@ -81,5 +81,5 @@ def test_probe_helpers():
 
 def test_run_and_tune_have_summarisation_branches():
     src = open(train.__file__, encoding="utf-8").read()
-    assert 'metric = "loss" if is_sum else "accuracy"' in src and "generation_eval" in src
+    assert '("rouge_l", "loss") if is_sum else' in src and "generation_eval" in src
     assert "gradient_checkpointing_enable" in src and "enable_input_require_grads" in src

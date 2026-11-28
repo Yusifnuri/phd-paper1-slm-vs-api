@@ -1,7 +1,7 @@
 """The single `final_eval` entry: the only gate through which a test split may be read.
 
 Refuses to load test data unless ALL of these hold (pre-registration section 5.3, D-04, D-08):
-  (a) the git tags exist and are ancestors of HEAD: the protocol tag (default "prereg-v1") and
+  (a) the git tags exist, are annotated (they carry a tagger and date) and are ancestors of HEAD: the protocol tag (default "prereg-v1") and
       the arms tag of the configuration's family ("arms-A": fine-tuned, kNN, local ICL; "arms-B":
       API arm, which requires both arms tags);
   (b) the configuration hash is listed in a COMMITTED, unmodified `final_configs.json`;
@@ -60,6 +60,8 @@ def _check_tag(repo: Path, tag: str) -> None:
     r = _git(repo, "rev-parse", "--verify", "--quiet", f"refs/tags/{tag}^{{commit}}")
     if r.returncode != 0:
         raise TestIsolationError("tag_missing", f"git tag {tag!r} does not exist")
+    if _git(repo, "cat-file", "-t", f"refs/tags/{tag}").stdout.strip() != "tag":
+        raise TestIsolationError("tag_not_annotated", f"git tag {tag!r} is lightweight; use `git tag -a`")
     if _git(repo, "merge-base", "--is-ancestor", r.stdout.strip(), "HEAD").returncode != 0:
         raise TestIsolationError("tag_not_ancestor", f"git tag {tag!r} is not an ancestor of HEAD")
 
@@ -81,7 +83,7 @@ def load_banking77_test(revision: Optional[str] = None) -> Dict[str, Any]:
     from datasets import load_dataset
     from src.train import data
 
-    ds = load_dataset(data.DATASET_ID, split="test", revision=revision)
+    ds = load_dataset(data.DATASET_ID, split="test", revision=revision or data.REVISION)
     if len(ds) != data.N_TEST:
         raise RuntimeError(f"expected {data.N_TEST} test rows, got {len(ds)}")
     names = ds.features["label"].names

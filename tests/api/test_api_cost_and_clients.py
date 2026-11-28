@@ -37,7 +37,8 @@ def test_estimate_prompts(specs):
 
 def test_planned_grid_shape(specs):
     rows = planned_grid()
-    assert len(rows) == 2 * 3 * len(PLANNED_N)
+    assert len(rows) == 2 * 2 * len(PLANNED_N)  # two tasks x two providers (L-41)
+    assert {r.provider for r in rows} == {"openai", "anthropic"}
     assert all(r.n_items == 1000 for r in rows)
     bill = [r for r in rows if r.task == "billsum" and r.provider == "openai"][0]
     # 5 shots of ~11.5k chars plus the query: roughly 15-16k tokens per item.

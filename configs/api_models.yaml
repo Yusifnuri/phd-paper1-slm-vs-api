@@ -14,7 +14,7 @@
 # new tokenizer yields about 30% more tokens (docs/research/2026-11-21-verified-findings.md).
 # Replace the fallback with provider count_tokens calls in the pilot.
 
-read_date: "2026-11-21"
+read_date: "2026-11-21"   # openai and anthropic prices re-read 2026-11-27 (unchanged)
 chars_per_token: 4.0
 
 providers:
@@ -26,7 +26,7 @@ providers:
     output_usd_per_mtok: 0.50
     batch_discount: 0.50        # Message Batches API: 50% off all token usage
     price_source: "https://platform.claude.com/docs/en/about-claude/pricing"
-    price_read_date: "2026-11-21"
+    price_read_date: "2026-11-27"
     logprobs: false
     # Haiku 5.5 rejects non-default temperature/top_p/top_k (HTTP 400), so it is not sent.
     supports_temperature: false
@@ -42,7 +42,7 @@ providers:
     output_usd_per_mtok: 0.50
     batch_discount: 0.50        # batch: $0.05 / $0.25
     price_source: "https://developers.openai.com/api/docs/pricing"
-    price_read_date: "2026-11-21"
+    price_read_date: "2026-11-27"
     logprobs: false             # NOT VERIFIED: the model page does not mention logprobs; treat as unavailable
     # Reasoning model: the client sends reasoning={"effort": "none"} (listed as supported on the
     # model page). The model page does not state temperature support, so it is not sent.
@@ -80,4 +80,6 @@ providers:
     thinking_level: null        # thinking control for 2.5 not verified; left unset
     token_multiplier: 1.0
 
-default_grid_providers: [anthropic, openai, google]
+# L-41 (2026-11-27): openai is the confirmatory arm, anthropic the secondary one.
+# The google entries are kept for reference and tests; they are not run.
+default_grid_providers: [openai, anthropic]

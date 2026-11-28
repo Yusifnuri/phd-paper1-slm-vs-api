@@ -26,6 +26,8 @@ Taken 2026-11-22 by the assistant under the researcher's explicit delegation ("m
 | D-20 | An independent re-review (a fresh reviewer that has not seen the drafting) of the final protocol text and the pilot results is done before the protocol tag; the assistant starts it | Gate 8 is not passed | decided; review open |
 | D-21 | Provider terms and dataset licences: confirmation after the runs, before any release of predictions or adapters; no release before that | Not needed for the tag | researcher |
 
+**Update 2026-11-27 (L-41):** D-08 and D-14 now apply to two API arms fixed in advance (GPT-6 Luna confirmatory, Claude Haiku 5.5 secondary). The three-provider cost ranges quoted in D-14 are superseded by section 12 of `PREREGISTRATION.md`.
+
 ## Consequences that need work
 
 1. Freeze script for BillSum and LEDGAR fingerprints (D-03), the blinded variance script (D-09), the independent review (D-20): assistant, no GPU, before the tag.

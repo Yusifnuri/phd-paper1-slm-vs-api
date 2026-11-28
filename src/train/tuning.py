@@ -7,8 +7,11 @@ Protocol (docs/foundation/EXPERIMENT_PROTOCOL.md section 4, L-05, L-17, L-18):
   * Validation on val(N) = the first min(1,000, N) rows of the fixed validation carve-out, at
     five evenly spaced checkpoints; early stopping with patience 2 inside the run (this replaces
     the old retrain-per-(lr, epochs) search, A5-12).
-  * Score: validation accuracy, validation loss as the tie-break (classification); validation
-    loss only for summarisation.
+  * Score: validation accuracy, validation loss as the tie-break (classification). Summarisation:
+    validation loss only stops a trial and picks its best checkpoint; summaries are then generated
+    on val(N) for that one checkpoint per trial and the winner across trials is the highest mean
+    ROUGE-L F1, the criterion the in-context arm is selected on (L-42). Summarisation trials have
+    one extra early checkpoint at 10% of the schedule.
   * The chosen (lr, schedule_steps, stop_step) is frozen in frozen_arms.json. A final run on
     replicate r >= 1 trains the same cosine schedule and stops at stop_step, i.e. it reproduces
     exactly the procedure of the selected checkpoint, on a fresh pool.
@@ -29,7 +32,8 @@ VAL_CAP = 1000
 N_CHECKPOINTS = 5
 PATIENCE = 2
 TUNING_REPLICATE = 0
-METRICS = ("accuracy", "loss")  # accuracy: classification; loss: summarisation
+METRICS = ("accuracy", "loss", "rouge_l")  # accuracy: classification; loss/rouge_l: summarisation
+EARLY_CHECKPOINT_FRACTION = 0.1
 
 
 class FrozenArmConflict(RuntimeError):
@@ -59,11 +63,15 @@ def schedule_steps(n: int, batch: int, s_min: int, e_max: Optional[int] = None) 
     return max(e * -(-n // batch), s_min)
 
 
-def checkpoint_steps(total: int, k: int = N_CHECKPOINTS) -> List[int]:
-    """k evenly spaced checkpoints, the last one at the end of the schedule."""
+def checkpoint_steps(total: int, k: int = N_CHECKPOINTS, early: Optional[float] = None) -> List[int]:
+    """k evenly spaced checkpoints, the last one at the end of the schedule; `early` adds one more
+    at that fraction of the schedule."""
     if total < 1 or k < 1:
         raise ValueError("total and k must be >= 1")
-    return sorted({max(1, round(total * (i + 1) / k)) for i in range(k)})
+    steps = {max(1, round(total * (i + 1) / k)) for i in range(k)}
+    if early is not None:
+        steps.add(max(1, round(total * early)))
+    return sorted(steps)
 
 
 def score(ck: Dict[str, Any], metric: str) -> Tuple[float, ...]:
@@ -74,6 +82,9 @@ def score(ck: Dict[str, Any], metric: str) -> Tuple[float, ...]:
     neg_loss = -loss if loss is not None and math.isfinite(loss) else -math.inf
     if metric == "loss":
         return (neg_loss,)
+    if metric == "rouge_l":  # only checkpoints that were generated and scored can win
+        r = ck.get("rouge_l")
+        return (r if r is not None and math.isfinite(r) else -math.inf, neg_loss)
     acc = ck.get("accuracy")
     acc = acc if acc is not None and math.isfinite(acc) else -math.inf
     return (acc, neg_loss)
@@ -134,6 +145,9 @@ def select(trials: Sequence[Dict[str, Any]], grid: Sequence[float], metric: str,
         "val_loss": ck.get("val_loss"),
         "at_grid_edge": edge,
         "n_trials": len(trials),
+        **({"val_rouge_l": ck.get("rouge_l"),
+            "stop_at_first_checkpoint": ck["step"] == t["checkpoints"][0]["step"]}
+           if metric == "rouge_l" else {}),
     }
 
 

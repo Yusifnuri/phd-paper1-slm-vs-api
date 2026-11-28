@@ -50,10 +50,16 @@ def test_refuses_missing_arms_tag(env):
     refused(env, "tag_missing")
 
 
+def test_refuses_lightweight_tag(env):
+    git(env, "tag", "-d", "prereg-v1")
+    git(env, "tag", "prereg-v1")
+    refused(env, "tag_not_annotated")
+
+
 def test_tag_names_are_parameters(env):
     refused(env, "tag_missing", protocol_tag="prereg-v2")
-    git(env, "tag", "my-proto")
-    git(env, "tag", "my-arms-a")
+    git(env, "tag", "-a", "my-proto", "-m", "p")
+    git(env, "tag", "-a", "my-arms-a", "-m", "a")
     run(env, protocol_tag="my-proto", arms_tags={"A": "my-arms-a"})
     assert env.calls == 1
 
@@ -62,7 +68,7 @@ def test_tag_must_be_ancestor_of_head(env):
     git(env, "checkout", "-q", "-b", "side")
     (env.repo / "x.txt").write_text("x")
     env.commit("side")
-    git(env, "tag", "arms-side")
+    git(env, "tag", "-a", "arms-side", "-m", "x")
     git(env, "checkout", "-q", "master") if "master" in git(env, "branch") else git(env, "checkout", "-q", "main")
     refused(env, "tag_not_ancestor", arms_tags={"A": "arms-side"})
 
@@ -71,7 +77,7 @@ def test_family_b_needs_both_arms_tags(env):
     env.write_configs(family="B")
     env.commit("family b")
     refused(env, "tag_missing")  # arms-B absent
-    git(env, "tag", "arms-B")
+    git(env, "tag", "-a", "arms-B", "-m", "x")
     run(env)
     assert env.calls == 1
 
@@ -195,7 +201,7 @@ def test_default_loaders_are_wired_but_not_called_on_refusal(env, monkeypatch):
     with pytest.raises(TestIsolationError):
         final_eval(env.config, **env.kwargs(loader=None))
     assert called == []
-    git(env, "tag", "arms-A")
+    git(env, "tag", "-a", "arms-A", "-m", "x")
     final_eval(env.config, **env.kwargs(loader=None))
     assert called == [1]
     assert set(fe.DEFAULT_LOADERS) == {"banking77", "billsum"}

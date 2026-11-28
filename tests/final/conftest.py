@@ -73,6 +73,6 @@ def env(tmp_path):
         "ledgar": {"status": "PLACEHOLDER_NOT_FROZEN", "sha256": None}}))
     e.write_configs()
     e.commit("init")
-    git(repo, "tag", "prereg-v1")
-    git(repo, "tag", "arms-A")
+    git(repo, "tag", "-a", "prereg-v1", "-m", "p")
+    git(repo, "tag", "-a", "arms-A", "-m", "a")
     return e

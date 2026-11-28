@@ -44,6 +44,8 @@ from . import data
 
 TASK = "billsum"
 DATASET_ID = "FiscalNote/billsum"
+# Pinned dataset revision, the one hashed in results/test_split_fingerprint.json (L-42).
+REVISION = "3d8510441c06a3d9dfb32eb0d7f80151730bcc4f"
 _US_TRAIN_SPLIT = "train"
 _US_TEST_SPLIT = 'test'  # used ONLY in load_us_test_subset_for_final_eval (checked by a test)
 
@@ -116,7 +118,7 @@ def load_train_split() -> Tuple[List[str], List[str]]:
     """Load ONLY the US train split. Returns (bill texts, gold summaries). Never reads test."""
     from datasets import load_dataset  # lazy: not needed for offline tests
 
-    ds = load_dataset(DATASET_ID, split=_US_TRAIN_SPLIT)
+    ds = load_dataset(DATASET_ID, split=_US_TRAIN_SPLIT, revision=REVISION)
     texts, summaries = list(ds["text"]), list(ds["summary"])
     if len(texts) != N_TRAIN:
         raise RuntimeError(f"expected {N_TRAIN} US train bills, got {len(texts)}")
@@ -131,7 +133,7 @@ def load_us_test_subset_for_final_eval() -> Dict[str, Any]:
     """
     from datasets import load_dataset  # lazy
 
-    ds = load_dataset(DATASET_ID, split=_US_TEST_SPLIT)
+    ds = load_dataset(DATASET_ID, split=_US_TEST_SPLIT, revision=REVISION)
     if len(ds) != N_TEST:
         raise RuntimeError(f"expected {N_TEST} US test bills, got {len(ds)}")
     idx = subset_indices(len(ds))

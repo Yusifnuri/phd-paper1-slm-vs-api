@@ -114,3 +114,5 @@ Nothing below was resolved by choosing silently. "Who" is the person who must de
 - Pilot numbers of `PREREGISTRATION.md` s.16 were recomputed from the files in `results/pilot-*` (accuracies, gates, times, per-lr best-checkpoint values from `chain.clean.log`). Not taken from the files: BillSum final losses by lr and the untuned N=1,000 throughput (7,708 tokens/s), which come from `PROGRESS.md` only; the GPU accounting of about 6 h (assistant's own, billed time unchecked); the +12 GPU-min estimate for the N=3,000 extension trial.
 - Extrapolations marked [I] or [arithmetic] in section 16 and `FEAS` s.3a (B77 N=3,000 final about 10.8 min; BillSum 50.4 / 75.2 min) are not measurements.
 - The 274,704 request total is the `count_requests.py` output with four k values; see `PC-33`.
+
+**Update 2026-11-28 (L-42):** `PC-30` (G4 waiver) and `PC-31` (gate rows, tuning-bar slice) are written in section 16.7 of the pre-registration; `PC-32` (sixth trial) and the trial-count part of `PC-34` are stated as asymmetries in section 7.1. `PC-33`, `PC-35` (API) and `PC-36` (GPU) stay open.
